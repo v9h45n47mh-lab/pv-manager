@@ -714,7 +714,7 @@ export function seriesChart({id,title,series,unit='',kind='line',min,max,formatX
     let d='',pen=false;for(const p of points){if(typeof p.y!=='number'||!Number.isFinite(p.y)){pen=false;continue;}d+=`${pen?'L':'M'}${x(p.x)},${y(p.y)} `;pen=true;}
     return `<path class="fui-chart-line ${cls}" d="${d}"/>`+points.filter(p=>typeof p.y==='number'&&Number.isFinite(p.y)).map(p=>`<circle class="fui-chart-dot ${cls}" cx="${x(p.x)}" cy="${y(p.y)}" r="2"/>`).join('');
   }).join('');
-  const indices=[...new Set([0,Math.floor((times.length-1)/2),times.length-1])].filter(i=>i>=0);
+  const indices=times.length?[...new Set([0,Math.floor((times.length-1)/2),times.length-1])]:[];
   return `<section class="fui-series-chart" id="${escapeHtml(id)}" style="--chart-rows:${series.length}" data-chart="${escapeHtml(JSON.stringify(chartData))}"><h3>${escapeHtml(title)}${unit?` <small>${escapeHtml(unit)}</small>`:''}</h3><div class="fui-chart-legend">${series.map(s=>`<span><i class="${roleClass(s.role)}"></i>${escapeHtml(s.label)}</span>`).join('')}</div><div class="fui-chart-inspector" aria-live="polite">${values.length?'Diagramm berühren oder mit Pfeiltasten erkunden.':'Keine historischen Werte für diesen Zeitraum vorhanden.'}</div><svg class="fui-chart-svg" viewBox="0 0 700 264" role="group" aria-label="${escapeHtml(title+' – Pfeiltasten für Einzelwerte')}" tabindex="0">${ticks}${marks}${indices.map(i=>`<text x="${x(times[i])}" y="248" text-anchor="${i===0?'start':i===times.length-1?'end':'middle'}">${escapeHtml(formatX(times[i]))}</text>`).join('')}<line class="fui-chart-cursor" x1="52" x2="52" y1="32" y2="220" hidden/><rect class="fui-chart-hit" x="52" y="32" width="620" height="188"/></svg></section>`;
 }
 
