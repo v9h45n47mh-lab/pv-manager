@@ -6,8 +6,8 @@ Home-Assistant-Karte für PV, Netz, Haus und Batteriespeicher. Die komplette Obe
 
 - Animierter Energiefluss wie in der Referenz: PV oben, Netz links, Haus rechts, Batterie unten; Ladezustand und eindeutige Bezugs-/Laderichtung.
 - Tages-, Wochen-, Monats- und Jahresverlauf mit Datumsnavigation.
-- Alle Verläufe als Balkendiagramme. Leistung und Batterie-Ladezustand: Tag 5 Minuten, Woche 1 Stunde, Monat 6 Stunden, Jahr 1 Tag. Energie: Tag Stunden, Woche/Monat Tage, Jahr Monate.
-- Unter **Balken anzeigen** lassen sich die konfigurierten Energiereihen einzeln ein- und ausblenden. Die Auswahl bleibt beim Wechsel des Zeitraums erhalten.
+- Alle Verläufe als Balkendiagramme. Tag mit 15-Minuten-Werten, Woche und Monat mit Tageswerten, Jahr mit Monatswerten.
+- Die konfigurierten Kennzahlen für Leistung, Batterie-Ladezustand und Energie lassen sich je Diagramm einzeln ein- und ausblenden. Die Auswahl bleibt beim Wechsel des Zeitraums erhalten.
 - Einzelwerte mit Maus, Finger oder Pfeiltasten; Anzeige oberhalb des Diagramms.
 - Suchbare Sensorzuordnung und anpassbare Vorzeichen. Batterie und kWh-Zähler optional. Mehrere unabhängige Karten über `card_id`.
 - Zentrale Einstellungen pro Karte, Änderungen durch HA-Administratoren. Die historischen Abfragen laufen mit den HA-Berechtigungen des betrachtenden Nutzers.
@@ -51,9 +51,9 @@ Standard: positiver Netzwert = **Bezug**, positiver Batteriewert = **Entladen**.
 
 Die Karte nutzt die Home-Assistant-Recorder-Statistik. Leistung und Ladezustand benötigen üblicherweise `state_class: measurement`. Energiezähler benötigen `state_class: total` oder `total_increasing` mit korrekten Reset-Metadaten. Für Energie nur Zähler auswählen, die diese Statistik tatsächlich bereitstellen; reine Leistungssensoren werden nicht als kWh interpretiert.
 
-Es werden vorhandene Daten verwendet. Die Karte erzeugt weder Messhistorie vor der Installation noch fehlende Langzeitstatistiken. Leere Intervalle bleiben leer. Die 5-Minuten-Statistik ist durch die Recorder-Aufbewahrung begrenzt; Tagesansichten, die älter als sieben Tage sind, fragen Stundenwerte ab. Bei kürzerer Aufbewahrung können auch neuere Tage Lücken haben. Energiesummen zeigen die erfassten Intervalle und können bei Lücken sowie im laufenden Intervall unvollständig sein. Es gibt keine Kosten-, Autarkie- oder Eigenverbrauchsberechnung aus unvollständigen Zählern.
+Es werden vorhandene Daten verwendet. Die Karte erzeugt weder Messhistorie vor der Installation noch fehlende Langzeitstatistiken. Leere Intervalle bleiben leer. Die Tagesansicht bildet 15-Minuten-Werte aus den 5-Minuten-Kurzzeitstatistiken. Deren Verfügbarkeit ist durch die Recorder-Aufbewahrung begrenzt. Woche, Monat und Jahr beziehen ihre Kalenderwerte aus der Langzeitstatistik. Energiesummen zeigen die erfassten Intervalle und können bei Lücken sowie im laufenden Intervall unvollständig sein. Es gibt keine Kosten-, Autarkie- oder Eigenverbrauchsberechnung aus unvollständigen Zählern.
 
-Kalendergrenzen verwenden die Home-Assistant-Zeitzone einschließlich Sommerzeit. Leistungsmittel werden nach vorhandener Intervalldauer gewichtet. Monatsdarstellungen verwenden 6-Stunden-Intervalle ab lokalem Monatsbeginn; Energiebalken verwenden lokale Kalendertage beziehungsweise Monate.
+Kalendergrenzen verwenden die Home-Assistant-Zeitzone einschließlich Sommerzeit. Leistung und Ladezustand sind Mittelwerte, Energie ist die Summe des Intervalls. Für 15-Minuten-Werte werden die vorhandenen Leistungsmessungen und der Ladezustand nach Intervalldauer gewichtet.
 
 ## Entwicklung
 

@@ -1,7 +1,7 @@
 import {UI_CSS,UI_VERSION,navigation,section,row,field,selectField,combobox,toggle,button,notice,versionInfo,bindUI,energyFlow,seriesChart,bindSeriesCharts,dateNavigation,sensorOverview,escapeHtml,checkboxGroup} from './family-ui/1.9.2/family-ui.js';
-import {DEFAULTS,FIELDS,liveValues,allocateFlows,dayKey,periodRange,shiftAnchor,chartPoints,energyPoints} from './data.js';
+import {DEFAULTS,FIELDS,liveValues,allocateFlows,dayKey,periodRange,shiftAnchor,HISTORY_INTERVALS,calendarBuckets,historyPoints} from './data.js';
 const uniqueId=()=>globalThis.crypto?.randomUUID?.()||'pv_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);
-const VERSION='1.0.3',PERIODS=[{value:'day',label:'Tag'},{value:'week',label:'Woche'},{value:'month',label:'Monat'},{value:'year',label:'Jahr'}];
+const VERSION='1.0.4',PERIODS=[{value:'day',label:'Tag'},{value:'week',label:'Woche'},{value:'month',label:'Monat'},{value:'year',label:'Jahr'}];
 const ENERGY_ROLES = {
   solar_energy: 'solar',
   import_energy: 'grid',
@@ -10,15 +10,26 @@ const ENERGY_ROLES = {
   charge_energy: 'charge',
   discharge_energy: 'battery',
 };
+const POWER_LABELS = {
+  solar: 'PV-Leistung',
+  home: 'Hausleistung',
+  grid: 'Netzleistung (+ Bezug / − Einspeisung)',
+  battery: 'Batterieleistung (+ Entladen / − Laden)',
+};
+const HISTORY_CHARTS = {
+  power: {title: 'Leistungsverlauf', unit: 'W', filterLabel: 'Leistung anzeigen'},
+  soc: {title: 'Batterie-Ladezustand', unit: '%', filterLabel: 'Batterie anzeigen', min: 0, max: 100},
+  energy: {title: 'Energieverlauf', unit: 'kWh', filterLabel: 'Balken anzeigen'},
+};
 const n=(v,d=1)=>v===null||v===undefined?'—':Number(v).toLocaleString('de-DE',{maximumFractionDigits:d});
 const watts=v=>v===null?'—':Math.abs(v)>=1000?n(Math.abs(v)/1000,2)+' kW':n(Math.abs(v),0)+' W';
 class PVManagerCard extends HTMLElement {
-  constructor(){super();this.attachShadow({mode:'open'});this.page='live';this.period='day';this._data={};this._sequence=0;this._hiddenEnergySeries=new Set();}
+  constructor(){super();this.attachShadow({mode:'open'});this.page='live';this.period='day';this._data={};this._sequence=0;this._hiddenSeries=new Set();}
   static getStubConfig(){return {card_id:uniqueId(),title:'PV-Anlage'};}
   static getConfigElement(){return document.createElement('pv-manager-card-editor');}
   setConfig(config){
     const cardId = config.card_id || 'default';
-    if (this.config?.card_id !== cardId) this._hiddenEnergySeries.clear();
+    if (this.config?.card_id !== cardId) this._hiddenSeries.clear();
     this.config={...DEFAULTS,...config,card_id:cardId};this._settings={};this._ready=false;this._sequence++;this._data={};if(this._hass)this._init();this.render();
   }
   get settings(){return {...this.config,...this._settings};}
@@ -32,16 +43,19 @@ class PVManagerCard extends HTMLElement {
   async _init(){if(this._initializing||!this.config)return;this._initializing=true;const id=this.config.card_id;try{const r=await this._hass.callWS({type:'pv_manager/config',card_id:id});if(id!==this.config.card_id)return;this._settings=r.settings||{};this._admin=r.admin;this._ready=true;this._error=null;this.render();if(this.page==='history')await this._fetch();}catch(e){this._error='PV Manager unter Einstellungen → Geräte & Dienste hinzufügen. '+(e.message||'');this.render();}finally{this._initializing=false;}}
   _range(){return periodRange(this.period,this.anchor||this.today,this.timezone);}
   async _fetch(){
-    if(!this._ready)return;const request=++this._sequence,s=this.settings,r=this._range(),end=Math.min(r.end,Date.now());
+    if(!this._ready)return;
+    const request=++this._sequence,s=this.settings,r=this._range();
+    const period = HISTORY_INTERVALS[this.period].recorder;
+    // Recorder day/month requests round the end up to the end of its calendar bucket.
+    const end = Math.min(r.end - 1, Date.now());
     this._busy=true;this._errors=[];this._data={};this.render();
     const ids=keys=>[...new Set(keys.map(k=>s[k]).filter(Boolean))];
-    const query=async(entities,period,types,units)=>entities.length?this._hass.callWS({type:'recorder/statistics_during_period',start_time:new Date(r.start).toISOString(),end_time:new Date(end).toISOString(),statistic_ids:entities,period,types,units}):{};
-    const powerIds=ids(['solar','grid','home','battery']),socIds=ids(['soc']),energyIds=ids(Object.keys(ENERGY_ROLES));
-    const old=(Date.now()-r.start)>7*86400000,pp=this.period==='day'&&!old?'5minute':this.period==='year'?'day':'hour',ep=this.period==='day'?'hour':this.period==='year'?'month':'day';
-    const requests=await Promise.allSettled([query(powerIds,pp,['mean'],{power:'W'}),query(socIds,pp,['mean'],{}),query(energyIds,ep,['change'],{energy:'kWh'})]);
+    const query=async(entities,types,units)=>entities.length?this._hass.callWS({type:'recorder/statistics_during_period',start_time:new Date(r.start).toISOString(),end_time:new Date(end).toISOString(),statistic_ids:entities,period,types,units}):{};
+    const powerIds=ids(Object.keys(POWER_LABELS)),socIds=ids(['soc']),energyIds=ids(Object.keys(ENERGY_ROLES));
+    const requests=await Promise.allSettled([query(powerIds,['mean'],{power:'W'}),query(socIds,['mean'],{}),query(energyIds,['change'],{energy:'kWh'})]);
     if(request!==this._sequence)return;
     ['power','soc','energy'].forEach((key,i)=>{if(requests[i].status==='fulfilled')this._data[key]=requests[i].value;else this._errors.push(({power:'Leistungsverlauf',soc:'Batterieverlauf',energy:'Energieverlauf'}[key])+': '+(requests[i].reason?.message||'Abfrage fehlgeschlagen'));});
-    this._resolution=pp;this._busy=false;this.render();
+    this._busy=false;this.render();
   }
   _updateLive(){const live=this.shadowRoot.querySelector('[data-live]');if(live)live.innerHTML=this._live();}
   _live(){
@@ -54,7 +68,7 @@ class PVManagerCard extends HTMLElement {
   _chart(options) {
     const dateOptions = {
       day: {hour: '2-digit', minute: '2-digit'},
-      week: {day: '2-digit', month: '2-digit', hour: '2-digit'},
+      week: {day: '2-digit', month: '2-digit'},
       month: {day: '2-digit', month: '2-digit'},
       year: {month: 'short'},
     };
@@ -69,45 +83,64 @@ class PVManagerCard extends HTMLElement {
       kind: 'bar',
     });
   }
-  _energySeries() {
+  _historySeries(group, range = this._range()) {
     const settings = this.settings;
-    return Object.entries(ENERGY_ROLES).filter(([key]) => settings[key]).map(([key, role]) => ({
-      id: key,
-      role,
-      label: FIELDS[key][0],
-      points: energyPoints(this._data.energy?.[settings[key]]),
-    }));
-  }
-  _energyChart(series) {
-    const visible = series.filter(item => !this._hiddenEnergySeries.has(item.id));
-    if (!visible.length) return notice('Wähle mindestens eine Datenreihe für den Energieverlauf aus.');
-    return this._chart({id: 'energy-chart', title: 'Energieverlauf', series: visible, unit: 'kWh'});
-  }
-  _energyHistory(series) {
-    if (!series.length) return notice('Für den Energieverlauf bitte kWh-Zähler in den Einstellungen auswählen.');
-    const filters = checkboxGroup({
-      id: 'energy-series-filter',
-      label: 'Balken anzeigen',
-      items: series.map(item => ({value: item.id, label: item.label})),
-      values: series.filter(item => !this._hiddenEnergySeries.has(item.id)).map(item => item.id),
-      action: 'filter-energy-series',
+    const period = this.period;
+    const now = Date.now();
+    const buckets = period === 'day' ? [] : calendarBuckets(period, range, this.timezone, now);
+    const metricIds = group === 'power' ? Object.keys(POWER_LABELS) :
+      group === 'energy' ? Object.keys(ENERGY_ROLES) : ['soc'];
+    return metricIds.filter(id => settings[id]).map(id => {
+      const reversed = (id === 'grid' && settings.grid_positive === 'export') ||
+        (id === 'battery' && settings.battery_positive === 'charge');
+      return {
+        id,
+        role: ENERGY_ROLES[id] ?? (id === 'soc' ? 'battery' : id),
+        label: POWER_LABELS[id] ?? (id === 'soc' ? 'Ladezustand' : FIELDS[id][0]),
+        points: historyPoints(this._data[group]?.[settings[id]], {
+          period, range, buckets, now,
+          field: group === 'energy' ? 'change' : 'mean',
+          sign: reversed ? -1 : 1,
+        }),
+      };
     });
-    return `${filters}<div id="energy-chart-content">${this._energyChart(series)}</div>`;
+  }
+  _visibleHistoryChart(group, series) {
+    const visible = series.filter(item => !this._hiddenSeries.has(item.id));
+    if (!visible.length) return notice('Wähle mindestens eine Kennzahl für dieses Diagramm aus.');
+    const {title, unit, min, max} = HISTORY_CHARTS[group];
+    return this._chart({
+      id: group + '-chart', title, series: visible, unit, min, max,
+      ...(group === 'power' ? {formatValue: value => n(value, 0)} : {}),
+    });
+  }
+  _filteredHistory(group, series) {
+    if (!series.length) return group === 'energy'
+      ? notice('Für den Energieverlauf bitte kWh-Zähler in den Einstellungen auswählen.')
+      : '';
+    const filters = checkboxGroup({
+      id: group + '-series-filter',
+      label: HISTORY_CHARTS[group].filterLabel,
+      items: series.map(item => ({value: item.id, label: item.label})),
+      values: series.filter(item => !this._hiddenSeries.has(item.id)).map(item => item.id),
+      action: 'filter-' + group + '-series',
+    });
+    return `${filters}<div id="${group}-chart-content">${this._visibleHistoryChart(group, series)}</div>`;
   }
   _history(){
-    const s=this.settings,r=this._range(),step=this.period==='day'?(this._resolution==='5minute'?300000:3600000):this.period==='week'?3600000:this.period==='month'?21600000:86400000;
-    const powerSeries=['solar','home','grid','battery'].filter(k=>s[k]).map(k=>({role:k,label:{solar:'PV',home:'Haus',grid:'Netz (+ Bezug / − Einspeisung)',battery:'Batterie (+ Entladen / − Laden)'}[k],points:chartPoints(this._data.power?.[s[k]],{...r,step,sign:(k==='grid'&&s.grid_positive==='export'||k==='battery'&&s.battery_positive==='charge')?-1:1})}));
-    const energySeries = this._energySeries();
+    const r=this._range();
+    const energySeries = this._historySeries('energy', r);
     const summaries=energySeries.map(series=>{const valid=series.points.filter(p=>p.y!==null);return {label:series.label,value:(valid.length?n(valid.reduce((sum,p)=>sum+p.y,0),2):'—')+' kWh',icon:'energy-'+({export:'grid',charge:'battery'}[series.role]||series.role)};});
     return `<div class="toolbar">${selectField({id:'period',label:'Zeitraum',value:this.period,options:PERIODS})}</div>`+
       dateNavigation({label:this.period==='day'?r.first:r.first+' – '+shiftAnchor('day',r.last,-1),previousLabel:'Vorheriger Zeitraum',nextLabel:'Nächster Zeitraum',nextDisabled:r.end>Date.now(),todayLabel:'Heute'})+
       (this._busy?notice('Historische Werte werden geladen …'):'')+
       (this._errors||[]).map(e=>notice(e,{error:true})).join('')+
       (summaries.length?sensorOverview({id:'energy-summary',title:'Erfasste Energie im Zeitraum',groups:[{title:'',items:summaries}]}):'')+
-      this._chart({id:'power-chart',title:'Leistungsverlauf',series:powerSeries,unit:'W',formatValue:v=>n(v,0)})+
-      `<p class="hint">Zeitliche Mittelwerte · Auflösung ${this.period==='month'?'6 Stunden':this._resolution==='5minute'?'5 Minuten':this._resolution==='day'?'1 Tag':'1 Stunde'}. Ältere Tageswerte verwenden Stundenstatistiken.</p>`+
-      (s.soc?this._chart({id:'soc-chart',title:'Batterie-Ladezustand',series:[{role:'battery',label:'Ladezustand',points:chartPoints(this._data.soc?.[s.soc],{...r,step})}],unit:'%',min:0,max:100}):'')+
-      this._energyHistory(energySeries)+
+      `<p class="hint">${HISTORY_INTERVALS[this.period].label}. Leistung und Ladezustand als Mittelwert, Energie als Summe.</p>`+
+      this._filteredHistory('power', this._historySeries('power', r))+
+      this._filteredHistory('soc', this._historySeries('soc', r))+
+      this._filteredHistory('energy', energySeries)+
+      (this.period === 'day' ? '<p class="hint">15-Minuten-Werte benötigen verfügbare Kurzzeitstatistiken im Recorder.</p>' : '')+
       `<p class="hint">Historie aus dem Home-Assistant-Recorder. Lücken bedeuten fehlende Statistiken. Energiesummen enthalten nur erfasste Intervalle; das laufende Intervall kann noch fehlen.</p>`;
   }
   _settingsPage(){const s=this._draft||this.settings,states=this._hass?.states||{};
@@ -123,11 +156,15 @@ class PVManagerCard extends HTMLElement {
     if(['previous-period','next-period','today'].includes(action)){this.anchor=action==='today'?this.today:shiftAnchor(this.period,this.anchor||this.today,action==='previous-period'?-1:1);this._fetch();return;}
     if(action==='refresh'){if(!this._ready)this._init();else if(this.page==='history')this._fetch();else this._updateLive();return;}
     if(action==='discard'){this._draft=null;this._message=null;this.render();return;}
-    if (action === 'filter-energy-series') {
-      const series = this._energySeries();
+    const group = /^filter-(power|soc|energy)-series$/.exec(action)?.[1];
+    if (group) {
+      const series = this._historySeries(group);
       const selected = new Set(value);
-      this._hiddenEnergySeries = new Set(series.filter(item => !selected.has(item.id)).map(item => item.id));
-      this.shadowRoot.getElementById('energy-chart-content').innerHTML = this._energyChart(series);
+      for (const item of series) {
+        if (selected.has(item.id)) this._hiddenSeries.delete(item.id);
+        else this._hiddenSeries.add(item.id);
+      }
+      this.shadowRoot.getElementById(group + '-chart-content').innerHTML = this._visibleHistoryChart(group, series);
       return;
     }
     if(!this._admin)return;

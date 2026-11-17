@@ -55,6 +55,18 @@ async def main():
                 assert result['success'], result
                 result = await request(ws, 6, {'type': 'pv_manager/save', 'card_id': 'smoke', 'settings': {'solar': 'light.invalid'}})
                 assert not result['success'], result
+                for number, period, kind, entity, units in [
+                    (7, '5minute', 'change', 'sensor.energy', {'energy': 'kWh'}),
+                    (8, 'month', 'mean', 'sensor.pv', {'power': 'W'}),
+                    (9, 'month', 'change', 'sensor.energy', {'energy': 'kWh'}),
+                ]:
+                    result = await request(ws, number, {
+                        'type': 'recorder/statistics_during_period',
+                        'start_time': '2026-11-01T00:00:00Z',
+                        'end_time': '2026-11-02T00:00:00Z',
+                        'statistic_ids': [entity], 'period': period, 'types': [kind], 'units': units,
+                    })
+                    assert result['success'], result
                 await ws.close()
                 viewer = await connect(False)
                 result = await request(viewer, 1, {'type': 'pv_manager/save', 'card_id': 'smoke', 'settings': {'title': 'Forbidden'}})

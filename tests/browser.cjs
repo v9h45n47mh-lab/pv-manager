@@ -24,7 +24,17 @@ const powerGeometry = JSON.parse(await powerChart.getAttribute('data-chart'));
 await powerChart.locator('svg').press('Home');
 assert.equal(Number(await powerChart.locator('.fui-chart-cursor').getAttribute('x1')), 52 + powerGeometry.inset);
 assert.equal(await powerChart.locator('.fui-chart-inspector strong').innerText(), powerGeometry.labels[0]);
+assert.equal(powerGeometry.times[1] - powerGeometry.times[0], 900000);
+const energyGeometry = JSON.parse(await energyChart.getAttribute('data-chart'));
+assert.deepEqual(energyGeometry.times, powerGeometry.times);
+assert.equal(energyGeometry.series[0].values[0], '0,9');
 const callsBeforeFiltering = await page.evaluate(() => window.calls.length);
+const solarPower = card.getByRole('group', {name: 'Leistung anzeigen'}).getByRole('checkbox', {name: 'PV-Leistung'});
+const batterySoc = card.getByRole('group', {name: 'Batterie anzeigen'}).getByRole('checkbox', {name: 'Ladezustand'});
+await solarPower.uncheck();
+assert.equal(await powerChart.locator('.fui-chart-bar.fui-energy-solar').count(), 0);
+await batterySoc.uncheck();
+assert.equal(await card.locator('#soc-chart').count(), 0);
 assert.ok(await feedIn.isChecked());
 assert.ok(await energyChart.locator('.fui-chart-bar.fui-energy-export').count());
 await feedIn.focus();
@@ -37,11 +47,24 @@ assert.ok((await card.locator('#energy-summary-content').innerText()).includes('
 await yieldFilter.uncheck();
 await importFilter.uncheck();
 assert.equal(await energyChart.count(), 0);
-assert.ok(await card.getByText('Wähle mindestens eine Datenreihe für den Energieverlauf aus.').isVisible());
+assert.ok(await card.locator('#energy-chart-content').getByText('Wähle mindestens eine Kennzahl für dieses Diagramm aus.').isVisible());
 await yieldFilter.check();
 assert.ok(await energyChart.locator('.fui-chart-bar.fui-energy-solar').count());
 assert.equal(await page.evaluate(() => window.calls.length), callsBeforeFiltering);
-for(const period of ['week','month','year','day']){await card.locator('#period').selectOption(period);await page.waitForFunction(()=>!document.querySelector('pv-manager-card')._busy);assert.equal(await card.locator('#soc-chart').count(),1);assert.ok(!await feedIn.isChecked());assert.ok(await yieldFilter.isChecked());}
+for (const [period, recorderPeriod] of [['week', 'day'], ['month', 'day'], ['year', 'month'], ['day', '5minute']]) {
+  await card.locator('#period').selectOption(period);
+  await page.waitForFunction(() => !document.querySelector('pv-manager-card')._busy);
+  const calls = await page.evaluate(() => window.calls.slice(-3).map(call => call.period));
+  assert.deepEqual(calls, [recorderPeriod, recorderPeriod, recorderPeriod]);
+  assert.equal(await card.locator('#soc-chart').count(), 0);
+  assert.ok(!await batterySoc.isChecked());
+  assert.ok(!await solarPower.isChecked());
+  assert.ok(!await feedIn.isChecked());
+  assert.ok(await yieldFilter.isChecked());
+}
+await solarPower.check();
+await batterySoc.check();
+assert.equal(await card.locator('#soc-chart').count(), 1);
 await feedIn.check();
 await importFilter.check();
 await card.getByRole('button',{name:'Vorheriger Zeitraum'}).click();await page.waitForFunction(()=>!document.querySelector('pv-manager-card')._busy);await card.getByRole('button',{name:'Heute',exact:true}).click();

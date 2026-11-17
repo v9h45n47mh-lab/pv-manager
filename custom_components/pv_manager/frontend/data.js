@@ -17,8 +17,51 @@ function addDays(key,days){const d=new Date(key+'T12:00:00Z');d.setUTCDate(d.get
 export function midnight(key,timeZone){const desired=Date.parse(key+'T00:00:00Z');let t=desired;for(let i=0;i<4;i++){const parts=new Intl.DateTimeFormat('en-CA',{timeZone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(new Date(t));const p=Object.fromEntries(parts.map(x=>[x.type,x.value]));const actual=Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute,+p.second);t+=desired-actual;}return t;}
 export function periodRange(period,anchor,timeZone){let first=anchor,last;if(period==='week'){const dow=new Date(anchor+'T12:00:00Z').getUTCDay();first=addDays(anchor,-((dow+6)%7));last=addDays(first,7);}else if(period==='month'){first=anchor.slice(0,7)+'-01';const d=new Date(first+'T12:00:00Z');d.setUTCMonth(d.getUTCMonth()+1);last=d.toISOString().slice(0,10);}else if(period==='year'){first=anchor.slice(0,4)+'-01-01';last=(Number(first.slice(0,4))+1)+'-01-01';}else last=addDays(first,1);return {first,last,start:midnight(first,timeZone),end:midnight(last,timeZone)};}
 export function shiftAnchor(period,anchor,direction){const d=new Date(anchor+'T12:00:00Z');if(period==='year'){d.setUTCMonth(0,1);d.setUTCFullYear(d.getUTCFullYear()+direction);}else if(period==='month'){d.setUTCDate(1);d.setUTCMonth(d.getUTCMonth()+direction);}else d.setUTCDate(d.getUTCDate()+direction*(period==='week'?7:1));return d.toISOString().slice(0,10);}
+export const HISTORY_INTERVALS = {
+  day: {recorder: '5minute', label: '15-Minuten-Werte'},
+  week: {recorder: 'day', label: 'Tageswerte'},
+  month: {recorder: 'day', label: 'Tageswerte'},
+  year: {recorder: 'month', label: 'Monatswerte'},
+};
+
+function statisticTimestamp(value) {
+  const timestamp = numeric(value);
+  if (timestamp === null) return NaN;
+  return timestamp < 1e12 ? timestamp * 1000 : timestamp;
+}
+
 export function chartPoints(rows,{start,end,step,sign=1,field='mean',now=Date.now()}){
-  const buckets=new Map();for(const row of rows||[]){let x=Number(row.start);if(x<1e12)x*=1000;const value=numeric(row[field]);if(value===null||!Number.isFinite(x)||x<start||x>=end)continue;const key=start+Math.floor((x-start)/step)*step;let endTime=Number(row.end);if(endTime<1e12)endTime*=1000;const weight=Number.isFinite(endTime)?Math.max(1,Math.min(endTime,end)-Math.max(x,start)):1;const b=buckets.get(key)||{sum:0,weight:0};b.sum+=value*sign*(field==='change'?1:weight);b.weight+=field==='change'?1:weight;buckets.set(key,b);}
+  const buckets=new Map();for(const row of rows||[]){const x=statisticTimestamp(row.start);const value=numeric(row[field]);if(value===null||!Number.isFinite(x)||x<start||x>=end)continue;const key=start+Math.floor((x-start)/step)*step;const endTime=statisticTimestamp(row.end);const weight=Number.isFinite(endTime)?Math.max(1,Math.min(endTime,end)-x):1;const b=buckets.get(key)||{sum:0,weight:0};b.sum+=value*sign*(field==='change'?1:weight);b.weight+=field==='change'?1:weight;buckets.set(key,b);}
   const result=[];for(let x=start;x<Math.min(end,now);x+=step){const b=buckets.get(x);result.push({x,y:b?(field==='change'?b.sum:b.sum/b.weight):null});}return result;
 }
-export function energyPoints(rows){return (rows||[]).map(r=>({x:Number(r.start)*(Number(r.start)<1e12?1000:1),y:numeric(r.change)}));}
+
+/** Calendar bucket starts in the configured Home Assistant time zone. */
+export function calendarBuckets(period, range, timeZone, now = Date.now()) {
+  const buckets = [];
+  for (let key = range.first; key < range.last; ) {
+    const start = midnight(key, timeZone);
+    if (start >= now) break;
+    buckets.push(start);
+    key = period === 'year' ? shiftAnchor('month', key, 1) : addDays(key, 1);
+  }
+  return buckets;
+}
+
+export function historyPoints(rows, {period, range, buckets, field = 'mean', sign = 1, now = Date.now()}) {
+  if (period === 'day') {
+    return chartPoints(rows, {
+      start: range.start,
+      end: Math.min(range.end, now),
+      step: 15 * 60 * 1000,
+      field,
+      sign,
+      now,
+    });
+  }
+  // The recorder already reduced these rows to local days or months.
+  const values = new Map((rows || []).map(row => [statisticTimestamp(row.start), numeric(row[field])]));
+  return buckets.map(x => {
+    const value = values.get(x) ?? null;
+    return {x, y: value === null ? null : value * sign};
+  });
+}

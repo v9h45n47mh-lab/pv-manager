@@ -1,5 +1,6 @@
 <!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PV Manager Vorschau</title><style>body{margin:0;padding:12px;background:#f3f5f8;font-family:Arial}pv-manager-card{max-width:850px;margin:auto;--primary-color:#03a9f4}body.dark{background:#10151b;--ha-card-background:#1c232c;--card-background-color:#1c232c;--input-fill-color:#26313d;--primary-text-color:#eef1f5;--secondary-text-color:#aab4c2;--divider-color:#384250;--success-color:#66bb6a;--warning-color:#ffb74d}</style><pv-manager-card></pv-manager-card><script type="module">
 import '../custom_components/pv_manager/frontend/pv-manager-card.js';
+import {dayKey, midnight, shiftAnchor} from '../custom_components/pv_manager/frontend/data.js';
 const card=document.querySelector('pv-manager-card');
 const attrs=(name,unit,device_class,state_class='measurement')=>({friendly_name:name,unit_of_measurement:unit,device_class,state_class});
 const states={
@@ -19,11 +20,14 @@ if(msg.type==='pv_manager/config')return {admin:window.userAdmin,settings:window
 if(msg.type==='pv_manager/save'){window.saved=msg.settings;return {saved:true};}
 if(msg.type==='recorder/statistics_during_period'){
 if(window.failPower&&msg.units.power)throw Error('Recorder nicht erreichbar');
-const out={},start=Date.parse(msg.start_time),end=Date.parse(msg.end_time),step=msg.period==='5minute'?300000:msg.period==='hour'?3600000:msg.period==='month'?30*86400000:86400000;
-for(const id of msg.statistic_ids){out[id]=[];for(let t=start,i=0;t<end;t+=step,i++){
+const out={},start=Date.parse(msg.start_time),end=Date.parse(msg.end_time);
+const nextBoundary = t => msg.period === '5minute' ? t + 300000 :
+  midnight(shiftAnchor(msg.period, dayKey(new Date(t), 'Europe/Berlin'), 1), 'Europe/Berlin');
+for(const id of msg.statistic_ids){out[id]=[];for(let t=start,i=0;t<end;t=nextBoundary(t),i++){
 const solar=Math.max(0,Math.sin(((t-start)/86400000%1-.25)*Math.PI*2))*6200;
 let mean=id.includes('battery_power')?-Math.min(1500,solar/2):id.includes('grid_power')?1600-solar/2:id.includes('load_power')?1800+400*Math.sin(i/4):id==='sensor.inverter_battery'?30+solar/130:solar;
-out[id].push({start:t,end:t+step,mean:i===5?null:mean,change:i===5?null:(id==='sensor.pv_total'?3.6:id==='sensor.import_total'?.6:1.3)});
+const energy = id === 'sensor.pv_total' ? 3.6 : id === 'sensor.import_total' ? .6 : 1.3;
+out[id].push({start:t,end:nextBoundary(t),mean:i===5?null:mean,change:i===5?null:(msg.period==='5minute'?energy/12:energy)});
 }}return out;
 }throw Error('Unexpected command '+msg.type);
 }};

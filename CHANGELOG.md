@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.4 – 2026-11-17
+
+- Gleiche Auflösung für alle Balkendiagramme: Tag 15 Minuten, Woche und Monat Kalendertage, Jahr Kalendermonate.
+- Leistungskennzahlen, Ladezustand und Energiezähler je Diagramm einzeln ein- und ausblenden.
+
 ## 1.0.3 – 2026-11-17
 
 - Leistung, Batterie-Ladezustand und Energie durchgängig als Balkendiagramme.
