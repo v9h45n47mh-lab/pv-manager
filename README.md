@@ -1,13 +1,13 @@
 # PV Manager
 
-Home-Assistant-Karte für PV, Netz, Haus und Batteriespeicher. Die komplette Oberfläche verwendet das lokal gebündelte **HA UI Kit 1.9.2**. Keine CDN-Abhängigkeit, keine Cloud und keine zusätzliche Diagrammkarte nötig.
+Home-Assistant-Karte für PV, Netz, Haus und Batteriespeicher. Die komplette Oberfläche verwendet das lokal gebündelte **HA UI Kit 1.9.3**. Keine CDN-Abhängigkeit, keine Cloud und keine zusätzliche Diagrammkarte nötig.
 
 ## Funktionen
 
 - Animierter Energiefluss wie in der Referenz: PV oben, Netz links, Haus rechts, Batterie unten; Ladezustand und eindeutige Bezugs-/Laderichtung.
 - Tages-, Wochen-, Monats- und Jahresverlauf mit Datumsnavigation.
-- Alle Verläufe als Balkendiagramme. Tag mit 15-Minuten-Werten, Woche und Monat mit Tageswerten, Jahr mit Monatswerten.
-- Die konfigurierten Kennzahlen für Leistung, Batterie-Ladezustand und Energie lassen sich je Diagramm einzeln ein- und ausblenden. Die Auswahl bleibt beim Wechsel des Zeitraums erhalten.
+- Ein Energie-Balkendiagramm. Tag mit 15-Minuten-Summen, Woche und Monat mit Tagessummen, Jahr mit Monatssummen.
+- Erzeugung, Verbrauch und Netzbezug in kWh. Die farbigen Legendeneinträge zeigen die Zeitraum-Summen und schalten ihre Balken ein oder aus.
 - Einzelwerte mit Maus, Finger oder Pfeiltasten; Anzeige oberhalb des Diagramms.
 - Suchbare Sensorzuordnung und anpassbare Vorzeichen. Batterie und kWh-Zähler optional. Mehrere unabhängige Karten über `card_id`.
 - Zentrale Einstellungen pro Karte, Änderungen durch HA-Administratoren. Die historischen Abfragen laufen mit den HA-Berechtigungen des betrachtenden Nutzers.
@@ -49,11 +49,11 @@ Standard: positiver Netzwert = **Bezug**, positiver Batteriewert = **Entladen**.
 
 ## Historische Daten
 
-Die Karte nutzt die Home-Assistant-Recorder-Statistik. Leistung und Ladezustand benötigen üblicherweise `state_class: measurement`. Energiezähler benötigen `state_class: total` oder `total_increasing` mit korrekten Reset-Metadaten. Für Energie nur Zähler auswählen, die diese Statistik tatsächlich bereitstellen; reine Leistungssensoren werden nicht als kWh interpretiert.
+Die Karte nutzt die Home-Assistant-Recorder-Statistik. Energiezähler für Erzeugung, Verbrauch und Netzbezug benötigen `state_class: total` oder `total_increasing` mit korrekten Reset-Metadaten. Für Energie nur Zähler auswählen, die diese Statistik tatsächlich bereitstellen; reine Leistungssensoren werden nicht als kWh interpretiert.
 
 Es werden vorhandene Daten verwendet. Die Karte erzeugt weder Messhistorie vor der Installation noch fehlende Langzeitstatistiken. Leere Intervalle bleiben leer. Die Tagesansicht bildet 15-Minuten-Werte aus den 5-Minuten-Kurzzeitstatistiken. Deren Verfügbarkeit ist durch die Recorder-Aufbewahrung begrenzt. Woche, Monat und Jahr beziehen ihre Kalenderwerte aus der Langzeitstatistik. Energiesummen zeigen die erfassten Intervalle und können bei Lücken sowie im laufenden Intervall unvollständig sein. Es gibt keine Kosten-, Autarkie- oder Eigenverbrauchsberechnung aus unvollständigen Zählern.
 
-Kalendergrenzen verwenden die Home-Assistant-Zeitzone einschließlich Sommerzeit. Leistung und Ladezustand sind Mittelwerte, Energie ist die Summe des Intervalls. Für 15-Minuten-Werte werden die vorhandenen Leistungsmessungen und der Ladezustand nach Intervalldauer gewichtet.
+Kalendergrenzen verwenden die Home-Assistant-Zeitzone einschließlich Sommerzeit. Jeder Balken zeigt die Energiesumme seines Intervalls. Die Legende zeigt die Summe der erfassten Intervalle im gewählten Zeitraum.
 
 ## Entwicklung
 
@@ -67,7 +67,7 @@ npm run test:browser
 npm run package
 ```
 
-`tests/demo.html` ist eine lokale Vorschau mit klaren Beispieldaten. Die produktive Karte enthält keine Demowerte. Die festen UI-Dateien samt Lizenz und Prüfsummen liegen unter `frontend/family-ui/1.9.2`. Änderungen an gemeinsamem Aussehen erfolgen im [HA UI Kit](https://github.com/v9h45n47mh-lab/ha-ui-kit).
+`tests/demo.html` ist eine lokale Vorschau mit klaren Beispieldaten. Die produktive Karte enthält keine Demowerte. Die festen UI-Dateien samt Lizenz und Prüfsummen liegen unter `frontend/family-ui/1.9.3`. Änderungen an gemeinsamem Aussehen erfolgen im [HA UI Kit](https://github.com/v9h45n47mh-lab/ha-ui-kit).
 
 ## PV-Manager-Icon
 

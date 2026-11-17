@@ -10,16 +10,17 @@ const states={
 'sensor.inverter_battery_power':{state:'-1500',attributes:attrs('Batterieleistung','W','power')},
 'sensor.inverter_battery':{state:'64',attributes:attrs('Batterie Ladezustand','%','battery')},
 'sensor.pv_total':{state:'18342',attributes:attrs('PV Gesamtenergie','kWh','energy','total_increasing')},
+'sensor.home_total':{state:'10032',attributes:attrs('Verbrauch Gesamtenergie','kWh','energy','total_increasing')},
 'sensor.import_total':{state:'4200',attributes:attrs('Netzbezug Gesamtenergie','kWh','energy','total_increasing')},
 'sensor.export_total':{state:'9100',attributes:attrs('Einspeisung Gesamtenergie','kWh','energy','total_increasing')}
 };
-window.calls=[];window.saved=null;window.failPower=false;window.userAdmin=true;
+window.calls=[];window.saved=null;window.failRecorder=false;window.userAdmin=true;
 window.mockHass={states,config:{time_zone:'Europe/Berlin'},callWS:async msg=>{
 window.calls.push(msg);
-if(msg.type==='pv_manager/config')return {admin:window.userAdmin,settings:window.saved||{solar_energy:'sensor.pv_total',import_energy:'sensor.import_total',export_energy:'sensor.export_total'}};
+if(msg.type==='pv_manager/config')return {admin:window.userAdmin,settings:window.saved||{solar_energy:'sensor.pv_total',home_energy:'sensor.home_total',import_energy:'sensor.import_total',export_energy:'sensor.export_total'}};
 if(msg.type==='pv_manager/save'){window.saved=msg.settings;return {saved:true};}
 if(msg.type==='recorder/statistics_during_period'){
-if(window.failPower&&msg.units.power)throw Error('Recorder nicht erreichbar');
+if(window.failRecorder)throw Error('Recorder nicht erreichbar');
 const out={},start=Date.parse(msg.start_time),end=Date.parse(msg.end_time);
 const nextBoundary = t => msg.period === '5minute' ? t + 300000 :
   midnight(shiftAnchor(msg.period, dayKey(new Date(t), 'Europe/Berlin'), 1), 'Europe/Berlin');

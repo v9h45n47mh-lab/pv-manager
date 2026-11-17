@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.5 – 2026-11-17
+
+- Ein Balkendiagramm mit summierter Erzeugung, summiertem Verbrauch und summiertem Netzbezug in kWh.
+- Interaktive Legende mit Zeitraum-Summen und gemeinsamen Energiefarben aus HA UI Kit 1.9.3.
+
 ## 1.0.4 – 2026-11-17
 
 - Gleiche Auflösung für alle Balkendiagramme: Tag 15 Minuten, Woche und Monat Kalendertage, Jahr Kalendermonate.

@@ -12,7 +12,7 @@ for file in component.rglob("*.json"):
 assert json.loads((component / "manifest.json").read_text())["version"] == json.loads((root / "package.json").read_text())["version"]
 frontend = component / "frontend"
 lock = json.loads((frontend / "family-ui.lock.json").read_text())
-assert lock["version"] == "1.9.2"
+assert lock["version"] == "1.9.3"
 for file, expected in lock["files"].items():
     assert hashlib.sha256((frontend / "family-ui" / lock["version"] / file).read_bytes()).hexdigest() == expected
 assert hashlib.sha256((frontend / "family-ui" / lock["version"] / "LICENSE").read_bytes()).hexdigest() == lock["licenseSha256"]
