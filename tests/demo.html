@@ -1,0 +1,31 @@
+<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PV Manager Vorschau</title><style>body{margin:0;padding:12px;background:#f3f5f8;font-family:Arial}pv-manager-card{max-width:850px;margin:auto;--primary-color:#03a9f4}body.dark{background:#10151b;--ha-card-background:#1c232c;--primary-text-color:#eef1f5;--secondary-text-color:#aab4c2;--divider-color:#384250;--success-color:#66bb6a;--warning-color:#ffb74d}</style><pv-manager-card></pv-manager-card><script type="module">
+import '../custom_components/pv_manager/frontend/pv-manager-card.js';
+const card=document.querySelector('pv-manager-card');
+const attrs=(name,unit,device_class,state_class='measurement')=>({friendly_name:name,unit_of_measurement:unit,device_class,state_class});
+const states={
+'sensor.inverter_power':{state:'5200',attributes:attrs('PV Erzeugung','W','power')},
+'sensor.inverter_grid_power':{state:'-1000',attributes:attrs('Netzleistung','W','power')},
+'sensor.inverter_load_power':{state:'2700',attributes:attrs('Hausverbrauch','W','power')},
+'sensor.inverter_battery_power':{state:'-1500',attributes:attrs('Batterieleistung','W','power')},
+'sensor.inverter_battery':{state:'64',attributes:attrs('Batterie Ladezustand','%','battery')},
+'sensor.pv_total':{state:'18342',attributes:attrs('PV Gesamtenergie','kWh','energy','total_increasing')},
+'sensor.import_total':{state:'4200',attributes:attrs('Netzbezug Gesamtenergie','kWh','energy','total_increasing')},
+'sensor.export_total':{state:'9100',attributes:attrs('Einspeisung Gesamtenergie','kWh','energy','total_increasing')}
+};
+window.calls=[];window.saved=null;window.failPower=false;window.userAdmin=true;
+window.mockHass={states,config:{time_zone:'Europe/Berlin'},callWS:async msg=>{
+window.calls.push(msg);
+if(msg.type==='pv_manager/config')return {admin:window.userAdmin,settings:window.saved||{solar_energy:'sensor.pv_total',import_energy:'sensor.import_total',export_energy:'sensor.export_total'}};
+if(msg.type==='pv_manager/save'){window.saved=msg.settings;return {saved:true};}
+if(msg.type==='recorder/statistics_during_period'){
+if(window.failPower&&msg.units.power)throw Error('Recorder nicht erreichbar');
+const out={},start=Date.parse(msg.start_time),end=Date.parse(msg.end_time),step=msg.period==='5minute'?300000:msg.period==='hour'?3600000:msg.period==='month'?30*86400000:86400000;
+for(const id of msg.statistic_ids){out[id]=[];for(let t=start,i=0;t<end;t+=step,i++){
+const solar=Math.max(0,Math.sin(((t-start)/86400000%1-.25)*Math.PI*2))*6200;
+let mean=id.includes('battery_power')?-Math.min(1500,solar/2):id.includes('grid_power')?1600-solar/2:id.includes('load_power')?1800+400*Math.sin(i/4):id==='sensor.inverter_battery'?30+solar/130:solar;
+out[id].push({start:t,end:t+step,mean:i===5?null:mean,change:i===5?null:(id==='sensor.pv_total'?3.6:id==='sensor.import_total'?.6:1.3)});
+}}return out;
+}throw Error('Unexpected command '+msg.type);
+}};
+card.setConfig({card_id:'demo',title:'PV-Anlage'});card.hass=window.mockHass;
+</script></html>

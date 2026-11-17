@@ -1,0 +1,14 @@
+{
+  "title": "PV Manager",
+  "config": {
+    "step": {
+      "user": {
+        "title": "PV Manager",
+        "description": "PV Manager stellt eine Dashboard-Karte für Energiefluss und Verläufe bereit. Die Sensoren werden anschließend in der Karte gewählt. Bestehende Sensoren und Recorder-Statistiken werden verwendet."
+      }
+    },
+    "abort": {
+      "already_configured": "PV Manager ist bereits eingerichtet."
+    }
+  }
+}

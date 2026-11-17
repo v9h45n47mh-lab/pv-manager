@@ -1,0 +1,11 @@
+{
+  "name": "@v9h45n47mh-lab/ha-ui-kit",
+  "version": "1.9.0",
+  "layout": "shutter-manager-1.4.0",
+  "files": {
+    "family-ui.js": "f6502cfdbb7a7f2b36a150ea8d0515b1ca285fdb4f401d4d01b337b672b180a4",
+    "family-ui.css": "322dfddfee6140bbecf610d3d9158f1fc1d930c4e438ec7b0db4fd8c26c0839d"
+  },
+  "module": "./family-ui/1.9.0/family-ui.js",
+  "licenseSha256": "2fc74bfaa9cc8d66c1bf838a205ddb231241847c1963f0091055e995d970b2fd"
+}

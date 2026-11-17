@@ -1,0 +1,56 @@
+name: Validate PV Manager
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  home-assistant:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test official Home Assistant
+        run: docker run --rm --entrypoint python -v "$PWD:/work" -w /work ghcr.io/home-assistant/home-assistant:2026.10.0 scripts/ha_smoke.py
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: npm install
+      - run: npm run build && npm run check && npm test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - run: npm run package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pv-manager
+          path: dist/*.zip
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pv-screenshots
+          path: test-results/
+
+  publish:
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish-pv]') }}
+    needs: [validate, home-assistant]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python3 scripts/package.py
+      - name: Publish verified release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_COMMIT: ${{ github.sha }}
+        run: |
+          version="$(python3 -c "import json; print(json.load(open('package.json'))['version'])")"
+          gh release create "v${version}" dist/*.zip --target "$RELEASE_COMMIT" --title "PV Manager ${version}" --notes "Energiefluss, Recorder-Verläufe und HA UI Kit 1.9.0. Installation und Sensorzuordnung siehe README."
