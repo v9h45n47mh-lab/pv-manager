@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1 – 2026-11-17
+
+- Lesbare Diagrammbeschriftung und größere Diagramme auf schmalen Karten.
+- Einzelwertanzeige initial mit dem letzten Intervall gefüllt.
+- Zusätzlicher Abstand unter Energiefluss-Knoten; UI Kit 1.9.1 lokal gebündelt.
+
 ## 1.0.0 – 2026-11-17
 
 - Erste Veröffentlichung mit Energiefluss, PV/Netz/Haus/Batterie und SOC.
