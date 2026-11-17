@@ -3,8 +3,8 @@
   "version": "1.9.0",
   "layout": "shutter-manager-1.4.0",
   "files": {
-    "family-ui.js": "1c5f0dbb8dfaf84c6f26d73bb8f0c92358bf5644eebfc27adf14c09f2b907725",
-    "family-ui.css": "322dfddfee6140bbecf610d3d9158f1fc1d930c4e438ec7b0db4fd8c26c0839d"
+    "family-ui.js": "7bf50bf2c843594e553c089b5a52063eb523fa6d32d7efa7640c51cc597663ad",
+    "family-ui.css": "6fe4f557c95f4383b08b4913db240cb8f6ba3435e9158d2b9814ca232d022e40"
   },
   "module": "./family-ui/1.9.0/family-ui.js",
   "licenseSha256": "2fc74bfaa9cc8d66c1bf838a205ddb231241847c1963f0091055e995d970b2fd"

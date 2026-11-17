@@ -118,7 +118,7 @@ fieldset{border:0;padding:0;margin:0;min-width:0}legend,.field-label{font-size:1
 .active .fui-account-metric-reading{color:var(--primary-color,#03a9f4)}
 
 /* Energy displays: shared theme tokens, geometry and chart interaction. */
-.fui-energy-flow,.fui-series-chart{--energy-solar:var(--warning-color,#ff9800);--energy-grid:var(--primary-color,#03a9f4);--energy-home:var(--info-color,var(--primary-color,#03a9f4));--energy-battery:var(--success-color,#43a047);--energy-export:var(--energy-export-color,#9575cd);--energy-charge:var(--energy-charge-color,#ec407a)}
+.fui-energy-flow,.fui-series-chart{--energy-solar:var(--warning-color,#ff9800);--energy-grid:var(--primary-color,#03a9f4);--energy-home:var(--energy-home-color,#26a69a);--energy-battery:var(--success-color,#43a047);--energy-export:var(--energy-export-color,#9575cd);--energy-charge:var(--energy-charge-color,#ec407a)}
 .fui-energy-flow{position:relative;width:100%;max-width:620px;margin:auto;aspect-ratio:500/390}.fui-energy-flow>svg{display:block;width:100%;height:100%}
 .fui-flow-track{fill:none;stroke:var(--divider-color,#e0e0e0);stroke-width:1.2}.fui-flow-line{fill:none;stroke:var(--series-color);stroke-width:2.5}.fui-flow-line.animated{stroke-dasharray:4 12;animation:fui-energy-move 2s linear infinite}.fui-flow-line.reverse{animation-direction:reverse}
 @keyframes fui-energy-move{to{stroke-dashoffset:-32}}
@@ -129,3 +129,5 @@ fieldset{border:0;padding:0;margin:0;min-width:0}legend,.field-label{font-size:1
 .fui-chart-legend{display:flex;flex-wrap:wrap;gap:4px 16px;margin:8px 0;color:var(--secondary-text-color,#727272);font-size:12px}.fui-chart-legend i{display:inline-block;width:16px;height:3px;background:var(--series-color);vertical-align:middle;margin-right:6px}.fui-chart-inspector{border:1px solid var(--divider-color,#e0e0e0);border-radius:var(--ha-card-border-radius,12px);padding:8px;min-height:calc(32px + var(--chart-rows,1)*18px);overflow-wrap:anywhere;font-size:12px}.fui-chart-values{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px}.fui-chart-values>span:nth-child(2n){text-align:right;white-space:nowrap}
 @media(prefers-reduced-motion:reduce){.fui-flow-line.animated{animation:none;stroke-dasharray:none}}
 @media(max-width:360px){.fui-energy-circle .ui-icon{width:20px;height:20px}.fui-energy-circle strong{font-size:12px}.fui-energy-circle small{font-size:10px}}
+
+.fui-chart-line.fui-energy-grid{stroke-dasharray:6 3}
