@@ -33,7 +33,7 @@ async def main():
                         assert 'javascript' in response.headers['Content-Type'], response.headers
                 async def connect(admin):
                     user = await hass.auth.async_create_user('Admin' if admin else 'Viewer', group_ids=[GROUP_ID_ADMIN] if admin else [])
-                    refresh = await hass.auth.async_create_refresh_token(user)
+                    refresh = await hass.auth.async_create_refresh_token(user, client_id="http://localhost/")
                     token = hass.auth.async_create_access_token(refresh)
                     ws = await session.ws_connect('http://127.0.0.1:8123/api/websocket')
                     assert (await ws.receive_json())['type'] == 'auth_required'

@@ -1,11 +1,12 @@
 import {UI_CSS,UI_VERSION,navigation,section,row,field,selectField,combobox,toggle,button,notice,versionInfo,bindUI,energyFlow,seriesChart,bindSeriesCharts,dateNavigation,accountTile,accountTiles,escapeHtml} from './family-ui/1.9.0/family-ui.js';
 import {DEFAULTS,FIELDS,liveValues,allocateFlows,dayKey,periodRange,shiftAnchor,chartPoints,energyPoints} from './data.js';
+const uniqueId=()=>globalThis.crypto?.randomUUID?.()||'pv_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);
 const VERSION='1.0.0',PERIODS=[{value:'day',label:'Tag'},{value:'week',label:'Woche'},{value:'month',label:'Monat'},{value:'year',label:'Jahr'}];
 const n=(v,d=1)=>v===null||v===undefined?'—':Number(v).toLocaleString('de-DE',{maximumFractionDigits:d});
 const watts=v=>v===null?'—':Math.abs(v)>=1000?n(Math.abs(v)/1000,2)+' kW':n(Math.abs(v),0)+' W';
 class PVManagerCard extends HTMLElement {
   constructor(){super();this.attachShadow({mode:'open'});this.page='live';this.period='day';this._data={};this._sequence=0;}
-  static getStubConfig(){return {card_id:crypto.randomUUID(),title:'PV-Anlage'};}
+  static getStubConfig(){return {card_id:uniqueId(),title:'PV-Anlage'};}
   static getConfigElement(){return document.createElement('pv-manager-card-editor');}
   setConfig(config){this.config={...DEFAULTS,...config,card_id:config.card_id||'default'};this._settings={};this._ready=false;this._sequence++;this._data={};if(this._hass)this._init();this.render();}
   get settings(){return {...this.config,...this._settings};}
@@ -68,7 +69,7 @@ class PVManagerCard extends HTMLElement {
 }
 class PVManagerEditor extends HTMLElement {
   constructor(){super();this.attachShadow({mode:'open'});}
-  setConfig(config){this.config={...config,card_id:config.card_id||crypto.randomUUID()};this.render();}
+  setConfig(config){this.config={...config,card_id:config.card_id||uniqueId()};this.render();}
   render(){this.shadowRoot.innerHTML=`<style>${UI_CSS}</style>${field({id:'card-id',label:'Karten-ID',value:this.config.card_id,hint:'Für unabhängige Einstellungen pro Karte eine eigene ID verwenden.'})}${field({id:'card-title',label:'Name der Karte',value:this.config.title||'PV-Anlage'})}`;this.shadowRoot.onchange=()=>{this.config={...this.config,card_id:this.shadowRoot.getElementById('card-id').value,title:this.shadowRoot.getElementById('card-title').value};this.dispatchEvent(new CustomEvent('config-changed',{detail:{config:this.config},bubbles:true,composed:true}));};}
 }
 if(!customElements.get('pv-manager-card'))customElements.define('pv-manager-card',PVManagerCard);
