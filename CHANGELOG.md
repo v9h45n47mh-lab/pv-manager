@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.6 – 2026-11-17
+
+- PV-Verlauf erkennt Sofar-Energiezähler passend zu den Leistungssensoren. Bei fehlender Zählerstatistik schätzt die Karte die Energie aus vorhandenen Recorder-Leistungswerten.
+- Ganzzahlige kWh-Skala mit HA UI Kit 1.9.4. Balkenhöhe, Intervallwerte und Summen behalten ihre Genauigkeit.
+
 ## 1.0.5 – 2026-11-17
 
 - Ein Balkendiagramm mit summierter Erzeugung, summiertem Verbrauch und summiertem Netzbezug in kWh.

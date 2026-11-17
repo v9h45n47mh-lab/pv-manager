@@ -6,6 +6,7 @@ import tempfile
 
 from aiohttp import ClientSession
 from homeassistant import bootstrap, loader
+from homeassistant.components.recorder import get_instance
 from homeassistant.core import HomeAssistant
 from homeassistant.auth.const import GROUP_ID_ADMIN
 
@@ -27,7 +28,7 @@ async def main():
             assert flow['type'] == 'create_entry', flow
             await hass.async_block_till_done()
             async with ClientSession() as session:
-                for name in ['pv-manager-card.js', 'data.js', 'family-ui/1.9.3/family-ui.js']:
+                for name in ['pv-manager-card.js', 'data.js', 'family-ui/1.9.4/family-ui.js']:
                     async with session.get('http://127.0.0.1:8123/pv-manager/' + name) as response:
                         assert response.status == 200, (name, response.status)
                         assert 'javascript' in response.headers['Content-Type'], response.headers
@@ -67,6 +68,38 @@ async def main():
                         'statistic_ids': [entity], 'period': period, 'types': [kind], 'units': units,
                     })
                     assert result['success'], result
+                for number, entity, unit, unit_class, readings in [
+                    (10, 'sensor.energy', 'Wh', 'energy', [
+                        {'start': '2026-10-31T22:00:00Z', 'sum': 20000},
+                        {'start': '2026-10-31T23:00:00Z', 'sum': 22000},
+                        {'start': '2026-11-01T00:00:00Z', 'sum': 24500},
+                    ]),
+                    (11, 'sensor.pv', 'kW', 'power', [
+                        {'start': '2026-10-31T23:00:00Z', 'mean': 3.6},
+                    ]),
+                ]:
+                    result = await request(ws, number, {
+                        'type': 'recorder/import_statistics',
+                        'metadata': {'statistic_id': entity, 'source': 'recorder', 'name': None,
+                                     'unit_of_measurement': unit, 'unit_class': unit_class,
+                                     'has_sum': unit_class == 'energy', 'has_mean': unit_class == 'power'},
+                        'stats': readings,
+                    })
+                    assert result['success'], result
+                await get_instance(hass).async_block_till_done()
+                for number, period, kind, entity, units, expected in [
+                    (12, 'day', 'change', 'sensor.energy', {'energy': 'kWh'}, 4.5),
+                    (13, 'hour', 'mean', 'sensor.pv', {'power': 'W'}, 3600),
+                ]:
+                    result = await request(ws, number, {
+                        'type': 'recorder/statistics_during_period',
+                        'start_time': '2026-10-31T23:00:00Z',
+                        'end_time': '2026-11-01T22:59:59Z',
+                        'statistic_ids': [entity], 'period': period, 'types': [kind], 'units': units,
+                    })
+                    assert result['success'], result
+                    first = result['result'][entity][0]
+                    assert first['start'] == 1793487600000 and first[kind] == expected, result
                 await ws.close()
                 viewer = await connect(False)
                 result = await request(viewer, 1, {'type': 'pv_manager/save', 'card_id': 'smoke', 'settings': {'title': 'Forbidden'}})
@@ -75,7 +108,7 @@ async def main():
             assert await hass.config_entries.async_reload(flow['result'].entry_id)
             await hass.async_block_till_done()
             assert hass.data['pv_manager']['cards']['smoke']['title'] == 'Roof PV'
-            print('Official HA smoke OK: config flow, reload, nested JavaScript assets, persisted settings, validation, admin permission and recorder query schemas')
+            print('Official HA smoke OK: configuration, permissions, assets and populated recorder queries')
         finally:
             await hass.async_stop()
 

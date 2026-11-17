@@ -26,7 +26,7 @@ export const HISTORY_INTERVALS = {
 
 function statisticTimestamp(value) {
   const timestamp = numeric(value);
-  if (timestamp === null) return NaN;
+  if (timestamp === null) return typeof value === 'string' ? Date.parse(value) : NaN;
   return timestamp < 1e12 ? timestamp * 1000 : timestamp;
 }
 
@@ -64,4 +64,20 @@ export function historyPoints(rows, {period, range, buckets, field = 'mean', sig
     const value = values.get(x) ?? null;
     return {x, y: value === null ? null : value * sign};
   });
+}
+
+/** Integrate the positive part of each available power statistic into kWh. */
+export function energyFromPower(rows, {buckets, end, sign = 1}) {
+  const totals = buckets.map(x => ({x, y: null}));
+  for (const row of rows || []) {
+    const start = statisticTimestamp(row.start);
+    const stop = Math.min(statisticTimestamp(row.end), end);
+    const power = numeric(row.mean);
+    if (power === null || !(start < stop)) continue;
+    for (let i = 0; i < buckets.length && buckets[i] < stop; i++) {
+      const overlap = Math.min(stop, buckets[i + 1] ?? end) - Math.max(start, buckets[i]);
+      if (overlap > 0) totals[i].y = (totals[i].y ?? 0) + Math.max(0, sign * power) * overlap / 3.6e9;
+    }
+  }
+  return totals;
 }

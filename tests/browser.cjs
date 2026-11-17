@@ -25,6 +25,7 @@ const energyGeometry = JSON.parse(await energyChart.getAttribute('data-chart'));
 assert.equal(energyGeometry.times[1] - energyGeometry.times[0], 900000);
 assert.deepEqual(energyGeometry.series.map(metric => metric.label), ['Erzeugung', 'Verbrauch', 'Netzbezug']);
 assert.deepEqual(energyGeometry.series.map(metric => metric.values[0]), ['0,9', '0,33', '0,15']);
+assert.deepEqual(await svg.locator('text[text-anchor="end"][x="46"]').allTextContents(), ['0', '1']);
 const energyCalls = await page.evaluate(() => window.calls.filter(call => call.type.startsWith('recorder/')));
 assert.ok(energyCalls.every(call => call.types.join() === 'change' &&
   call.units.energy === 'kWh' && call.statistic_ids.join() === 'sensor.pv_total,sensor.home_total,sensor.import_total'));

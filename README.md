@@ -1,6 +1,6 @@
 # PV Manager
 
-Home-Assistant-Karte für PV, Netz, Haus und Batteriespeicher. Die komplette Oberfläche verwendet das lokal gebündelte **HA UI Kit 1.9.3**. Keine CDN-Abhängigkeit, keine Cloud und keine zusätzliche Diagrammkarte nötig.
+Home-Assistant-Karte für PV, Netz, Haus und Batteriespeicher. Die komplette Oberfläche verwendet das lokal gebündelte **HA UI Kit 1.9.4**. Keine CDN-Abhängigkeit, keine Cloud und keine zusätzliche Diagrammkarte nötig.
 
 ## Funktionen
 
@@ -43,13 +43,13 @@ Für eine zweite Karte eine eigene `card_id` verwenden. Diese darf Buchstaben, Z
 | Haus | `sensor.inverter_load_power` | W / kW / MW |
 | Batterie | `sensor.inverter_battery_power` | W / kW / MW |
 | Ladezustand | `sensor.inverter_battery` | % |
-| Energiezähler | In den Einstellungen zuordnen | Wh / kWh / MWh |
+| Energiezähler | Passende Sofar-Gesamt- oder Tageszähler automatisch, eigene Zuordnung unter Energiezähler | Wh / kWh / MWh |
 
 Standard: positiver Netzwert = **Bezug**, positiver Batteriewert = **Entladen**. Beide Regeln sind umkehrbar. Bitte anhand realer Einspeisung/Ladung prüfen. Energieflussverbindungen sind rechnerische Zuordnungen aus den Gesamtleistungen mit Priorität PV → Haus → Batterie → Netz. Die Bilanz kann durch Messzeitpunkte, Wechselrichterverluste oder falsche Zuordnung abweichen; eine größere Abweichung wird angezeigt. Einzelne Herkunftsflüsse werden nicht separat gemessen.
 
 ## Historische Daten
 
-Die Karte nutzt die Home-Assistant-Recorder-Statistik. Energiezähler für Erzeugung, Verbrauch und Netzbezug benötigen `state_class: total` oder `total_increasing` mit korrekten Reset-Metadaten. Für Energie nur Zähler auswählen, die diese Statistik tatsächlich bereitstellen; reine Leistungssensoren werden nicht als kWh interpretiert.
+Die Karte nutzt die Home-Assistant-Recorder-Statistik. Energiezähler für Erzeugung, Verbrauch und Netzbezug benötigen `state_class: total` oder `total_increasing` mit korrekten Reset-Metadaten. Manuell zugeordnete Energiezähler haben Vorrang vor Sofar-Vorschlägen. Ist für eine Kennzahl im gewählten Zeitraum keine brauchbare Zählerstatistik vorhanden, schätzt die Karte die kWh aus den Leistungsstatistiken des zugeordneten Live-Sensors und kennzeichnet die Kennzahl. Die Tagesansicht verwendet dafür 5-Minuten-Statistiken, längere Ansichten verwenden Stundenstatistiken. Beim Netzbezug zählt nur die Bezugsrichtung. Ein Richtungswechsel innerhalb desselben Recorder-Intervalls kann den geschätzten Netzbezug verringern.
 
 Es werden vorhandene Daten verwendet. Die Karte erzeugt weder Messhistorie vor der Installation noch fehlende Langzeitstatistiken. Leere Intervalle bleiben leer. Die Tagesansicht bildet 15-Minuten-Werte aus den 5-Minuten-Kurzzeitstatistiken. Deren Verfügbarkeit ist durch die Recorder-Aufbewahrung begrenzt. Woche, Monat und Jahr beziehen ihre Kalenderwerte aus der Langzeitstatistik. Energiesummen zeigen die erfassten Intervalle und können bei Lücken sowie im laufenden Intervall unvollständig sein. Es gibt keine Kosten-, Autarkie- oder Eigenverbrauchsberechnung aus unvollständigen Zählern.
 
@@ -67,7 +67,7 @@ npm run test:browser
 npm run package
 ```
 
-`tests/demo.html` ist eine lokale Vorschau mit klaren Beispieldaten. Die produktive Karte enthält keine Demowerte. Die festen UI-Dateien samt Lizenz und Prüfsummen liegen unter `frontend/family-ui/1.9.3`. Änderungen an gemeinsamem Aussehen erfolgen im [HA UI Kit](https://github.com/v9h45n47mh-lab/ha-ui-kit).
+`tests/demo.html` ist eine lokale Vorschau mit klaren Beispieldaten. Die produktive Karte enthält keine Demowerte. Die festen UI-Dateien samt Lizenz und Prüfsummen liegen unter `frontend/family-ui/1.9.4`. Änderungen an gemeinsamem Aussehen erfolgen im [HA UI Kit](https://github.com/v9h45n47mh-lab/ha-ui-kit).
 
 ## PV-Manager-Icon
 
