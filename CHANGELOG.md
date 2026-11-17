@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Eigenes PV-Manager-Icon mit Sonne und Solarmodul für Integration und HACS; transparente PNGs in 256/512 px sowie helle/dunkle Variante.
+
 ## 1.0.1 – 2026-11-17
 
 - Lesbare Diagrammbeschriftung und größere Diagramme auf schmalen Karten.

@@ -67,3 +67,11 @@ npm run package
 ```
 
 `tests/demo.html` ist eine lokale Vorschau mit klaren Beispieldaten. Die produktive Karte enthält keine Demowerte. Die festen UI-Dateien samt Lizenz und Prüfsummen liegen unter `frontend/family-ui/1.9.1`. Änderungen an gemeinsamem Aussehen erfolgen im [HA UI Kit](https://github.com/v9h45n47mh-lab/ha-ui-kit).
+
+## PV-Manager-Icon (nächstes Release)
+
+![PV Manager](brand/icon.png)
+
+Das eigene Icon wird mit dem nächsten Release lokal unter `custom_components/pv_manager/brand/` sowie im Repository für HACS mitgeliefert. Helle und dunkle Varianten liegen in 256 und 512 Pixeln mit transparentem Hintergrund vor. Die Darstellung im HACS-Katalog hängt von dessen lokaler Brand-Unterstützung ab.
+
+Die editierbare Quelle ist `brand/pv.svg` innerhalb des Integrationsordners. Für eine erneute Rasterung steht `scripts/build_icons.cjs` bereit (Entwicklungswerkzeug: `npm install --no-save sharp`, danach `node scripts/build_icons.cjs`). Auf Home Assistant werden keine weiteren Pakete benötigt.

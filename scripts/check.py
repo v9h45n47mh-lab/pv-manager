@@ -17,3 +17,15 @@ for file, expected in lock["files"].items():
     assert hashlib.sha256((frontend / "family-ui" / lock["version"] / file).read_bytes()).hexdigest() == expected
 assert hashlib.sha256((frontend / "family-ui" / lock["version"] / "LICENSE").read_bytes()).hexdigest() == lock["licenseSha256"]
 print('Metadata, Python syntax, local UI checksums OK')
+
+# Brand assets are shipped identically for local HA brands and repository metadata.
+import struct
+for prefix in ("", "dark_"):
+    for suffix, size in (("", 256), ("@2x", 512)):
+        name = prefix + "icon" + suffix + ".png"
+        data = (component / "brand" / name).read_bytes()
+        assert data[:8] == b"\x89PNG\r\n\x1a\n", name
+        assert struct.unpack(">II", data[16:24]) == (size, size), name
+        assert data[25] == 6, "RGBA PNG required"
+        assert data == (root / "brand" / name).read_bytes(), name
+print("Brand icons: dimensions, transparency channel and distribution copies OK")
