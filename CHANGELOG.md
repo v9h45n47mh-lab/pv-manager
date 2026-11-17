@@ -1,7 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.0.2 – 2026-11-17
 
+- Datenreihen im Energie-Balkendiagramm einzeln ein- und ausblenden. Die Karte verwendet dafür die gemeinsame Checkbox-Gruppe aus HA UI Kit 1.9.1.
 - Eigenes PV-Manager-Icon mit Sonne und Solarmodul für Integration und HACS; transparente PNGs in 256/512 px sowie helle/dunkle Variante.
 
 ## 1.0.1 – 2026-11-17

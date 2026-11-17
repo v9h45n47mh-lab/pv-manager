@@ -16,7 +16,7 @@ from homeassistant.core import callback
 from homeassistant.helpers.storage import Store
 
 DOMAIN = "pv_manager"
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 ENTITY_KEYS = ("solar", "grid", "home", "battery", "soc", "solar_energy", "import_energy",
                "export_energy", "home_energy", "charge_energy", "discharge_energy")
 CARD_ID = vol.All(str, vol.Length(min=1, max=100), vol.Match(r"^[A-Za-z0-9_-]+$"))

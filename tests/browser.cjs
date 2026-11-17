@@ -5,11 +5,44 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+new UR
 await page.goto(`http://127.0.0.1:${server.address().port}/tests/demo.html`);const card=page.locator('pv-manager-card');await card.locator('.fui-energy-node').first().waitFor();
 for(const theme of ['light','dark'])for(const width of [1100,390,320]){await page.setViewportSize({width,height:1100});await page.evaluate(t=>document.body.classList.toggle('dark',t==='dark'),theme);await card.getByRole('button',{name:'Energiefluss',exact:true}).click();assert.equal(await card.locator('.fui-energy-node').count(),4);assert.ok((await card.locator('main').innerText()).includes('64 %'));await page.screenshot({path:path.join(out,`flow-${width}-${theme}.png`),fullPage:true});await card.getByRole('button',{name:'Verlauf',exact:true}).click();await card.locator('#power-chart').waitFor();await page.waitForFunction(()=>!document.querySelector('pv-manager-card')._busy);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`page fits ${width}`);assert.ok(await card.evaluate(el=>el.shadowRoot.querySelector('main').scrollWidth<=el.shadowRoot.querySelector('main').clientWidth),`card fits ${width}`);await page.screenshot({path:path.join(out,`history-${width}-${theme}.png`),fullPage:true});}
 await page.setViewportSize({width:850,height:1100});const svg=card.locator('#power-chart .fui-chart-svg');await svg.focus();await svg.press('ArrowRight');assert.ok((await card.locator('#power-chart .fui-chart-inspector').innerText()).includes('PV'));const box=await svg.boundingBox();await page.mouse.move(box.x+box.width*.6,box.y+box.height*.5);const inspector=await card.locator('#power-chart .fui-chart-inspector').boundingBox();assert.ok(inspector.y+inspector.height<=box.y+1,'inspector stays above plot');
-for(const period of ['week','month','year','day']){await card.locator('#period').selectOption(period);await page.waitForFunction(()=>!document.querySelector('pv-manager-card')._busy);assert.equal(await card.locator('#soc-chart').count(),1);}
+const filters = card.getByRole('group', {name: 'Balken anzeigen'});
+const feedIn = filters.getByRole('checkbox', {name: 'Einspeisung'});
+const yieldFilter = filters.getByRole('checkbox', {name: 'PV-Ertrag'});
+const importFilter = filters.getByRole('checkbox', {name: 'Netzbezug'});
+const energyChart = card.locator('#energy-chart');
+const energyValues = energyChart.locator('.fui-chart-values');
+await card.getByRole('button', {name: 'Vorheriger Zeitraum'}).click();
+await page.waitForFunction(() => !document.querySelector('pv-manager-card')._busy);
+const callsBeforeFiltering = await page.evaluate(() => window.calls.length);
+assert.ok(await feedIn.isChecked());
+assert.ok(await energyChart.locator('.fui-chart-bar.fui-energy-export').count());
+await feedIn.focus();
+await feedIn.press('Space');
+assert.ok(!await feedIn.isChecked());
+assert.ok(await feedIn.evaluate(el => el.getRootNode().activeElement === el));
+assert.equal(await energyChart.locator('.fui-chart-bar.fui-energy-export').count(), 0);
+assert.ok(!((await energyValues.innerText()).includes('Einspeisung')));
+assert.ok((await card.locator('#energy-summary-content').innerText()).includes('Einspeisung'));
+await yieldFilter.uncheck();
+await importFilter.uncheck();
+assert.equal(await energyChart.count(), 0);
+assert.ok(await card.getByText('Wähle mindestens eine Datenreihe für den Energieverlauf aus.').isVisible());
+await yieldFilter.check();
+assert.ok(await energyChart.locator('.fui-chart-bar.fui-energy-solar').count());
+assert.equal(await page.evaluate(() => window.calls.length), callsBeforeFiltering);
+for(const period of ['week','month','year','day']){await card.locator('#period').selectOption(period);await page.waitForFunction(()=>!document.querySelector('pv-manager-card')._busy);assert.equal(await card.locator('#soc-chart').count(),1);assert.ok(!await feedIn.isChecked());assert.ok(await yieldFilter.isChecked());}
+await feedIn.check();
+await importFilter.check();
 await card.getByRole('button',{name:'Vorheriger Zeitraum'}).click();await page.waitForFunction(()=>!document.querySelector('pv-manager-card')._busy);await card.getByRole('button',{name:'Heute',exact:true}).click();
 await card.getByRole('button',{name:'Einstellungen',exact:true}).click();await card.getByLabel('Name der Karte',{exact:true}).fill('Dachanlage');const power=card.getByRole('combobox',{name:'PV-Leistung',exact:true});await power.fill('Netzleistung');await card.getByRole('option',{name:'Netzleistung sensor.inverter_grid_power'}).click();await card.getByLabel('Positiver Netzwert bedeutet').selectOption('export');await card.getByRole('button',{name:'Speichern',exact:true}).click();assert.equal(await page.evaluate(()=>window.saved.solar),'sensor.inverter_grid_power');assert.equal(await page.evaluate(()=>window.saved.title),'Dachanlage');assert.equal(await page.evaluate(()=>window.saved.grid_positive),'export');assert.ok(!await page.evaluate(()=>Object.hasOwn(window.saved,'type')));await card.getByRole('button',{name:'Energiefluss',exact:true}).click();await page.evaluate(()=>{window.mockHass.states['sensor.inverter_grid_power'].state='unavailable';document.querySelector('pv-manager-card').hass=window.mockHass;});assert.ok((await card.locator('main').innerText()).includes('Messwerte fehlen'));
 await page.evaluate(()=>window.failPower=true);await card.getByRole('button',{name:'Verlauf',exact:true}).click();await page.waitForFunction(()=>!document.querySelector('pv-manager-card')._busy);assert.ok((await card.locator('main').innerText()).includes('Recorder nicht erreichbar'));assert.ok((await card.locator('#energy-chart').innerText()).includes('PV-Ertrag'));
 await page.evaluate(()=>{window.userAdmin=false;const c=document.querySelector('pv-manager-card');c._ready=false;c._init();});await card.getByRole('button',{name:'Einstellungen',exact:true}).click();await page.waitForFunction(()=>!document.querySelector('pv-manager-card')._initializing);assert.ok(await card.getByRole('button',{name:'Speichern',exact:true}).isDisabled());
-const touch=await browser.newContext({viewport:{width:390,height:1000},hasTouch:true,isMobile:true});const mobile=await touch.newPage();await mobile.goto(`http://127.0.0.1:${server.address().port}/tests/demo.html`);const mc=mobile.locator('pv-manager-card');await mc.getByRole('button',{name:'Verlauf',exact:true}).click();await mobile.waitForFunction(()=>!document.querySelector('pv-manager-card')._busy);const mb=await mc.locator('#power-chart .fui-chart-svg').boundingBox();await mobile.touchscreen.tap(mb.x+mb.width*.5,mb.y+mb.height*.5);assert.ok((await mc.locator('#power-chart .fui-chart-inspector').innerText()).includes('PV'));await mobile.screenshot({path:path.join(out,'touch-inspector.png'),fullPage:true});await touch.close();
+const touch=await browser.newContext({viewport:{width:390,height:1000},hasTouch:true,isMobile:true});const mobile=await touch.newPage();await mobile.goto(`http://127.0.0.1:${server.address().port}/tests/demo.html`);const mc=mobile.locator('pv-manager-card');await mc.getByRole('button',{name:'Verlauf',exact:true}).click();await mobile.waitForFunction(()=>!document.querySelector('pv-manager-card')._busy);const mb=await mc.locator('#power-chart .fui-chart-svg').boundingBox();await mobile.touchscreen.tap(mb.x+mb.width*.5,mb.y+mb.height*.5);assert.ok((await mc.locator('#power-chart .fui-chart-inspector').innerText()).includes('PV'));await mobile.screenshot({path:path.join(out,'touch-inspector.png'),fullPage:true});
+const touchFilter = mc.getByRole('checkbox', {name: 'Netzbezug'});
+await touchFilter.tap();
+assert.ok(!await touchFilter.isChecked());
+assert.equal(await mc.locator('#energy-chart .fui-chart-bar.fui-energy-grid').count(), 0);
+await mobile.screenshot({path:path.join(out,'touch-energy-filter.png'),fullPage:true});
+await touch.close();
 assert.deepEqual(errors,[]);console.log('Browser OK: 320/390/1100px, light/dark, charts, keyboard/touch, settings persistence, permissions, unavailable sensors and partial recorder failure');
 }catch(error){console.error('Page errors:',JSON.stringify(errors));await page.screenshot({path:path.join(out,'failure.png'),fullPage:true});throw error;}finally{await browser.close();server.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

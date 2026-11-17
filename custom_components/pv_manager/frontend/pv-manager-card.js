@@ -1,14 +1,26 @@
-import {UI_CSS,UI_VERSION,navigation,section,row,field,selectField,combobox,toggle,button,notice,versionInfo,bindUI,energyFlow,seriesChart,bindSeriesCharts,dateNavigation,sensorOverview,escapeHtml} from './family-ui/1.9.1/family-ui.js';
+import {UI_CSS,UI_VERSION,navigation,section,row,field,selectField,combobox,toggle,button,notice,versionInfo,bindUI,energyFlow,seriesChart,bindSeriesCharts,dateNavigation,sensorOverview,escapeHtml,checkboxGroup} from './family-ui/1.9.1/family-ui.js';
 import {DEFAULTS,FIELDS,liveValues,allocateFlows,dayKey,periodRange,shiftAnchor,chartPoints,energyPoints} from './data.js';
 const uniqueId=()=>globalThis.crypto?.randomUUID?.()||'pv_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);
-const VERSION='1.0.1',PERIODS=[{value:'day',label:'Tag'},{value:'week',label:'Woche'},{value:'month',label:'Monat'},{value:'year',label:'Jahr'}];
+const VERSION='1.0.2',PERIODS=[{value:'day',label:'Tag'},{value:'week',label:'Woche'},{value:'month',label:'Monat'},{value:'year',label:'Jahr'}];
+const ENERGY_ROLES = {
+  solar_energy: 'solar',
+  import_energy: 'grid',
+  export_energy: 'export',
+  home_energy: 'home',
+  charge_energy: 'charge',
+  discharge_energy: 'battery',
+};
 const n=(v,d=1)=>v===null||v===undefined?'—':Number(v).toLocaleString('de-DE',{maximumFractionDigits:d});
 const watts=v=>v===null?'—':Math.abs(v)>=1000?n(Math.abs(v)/1000,2)+' kW':n(Math.abs(v),0)+' W';
 class PVManagerCard extends HTMLElement {
-  constructor(){super();this.attachShadow({mode:'open'});this.page='live';this.period='day';this._data={};this._sequence=0;}
+  constructor(){super();this.attachShadow({mode:'open'});this.page='live';this.period='day';this._data={};this._sequence=0;this._hiddenEnergySeries=new Set();}
   static getStubConfig(){return {card_id:uniqueId(),title:'PV-Anlage'};}
   static getConfigElement(){return document.createElement('pv-manager-card-editor');}
-  setConfig(config){this.config={...DEFAULTS,...config,card_id:config.card_id||'default'};this._settings={};this._ready=false;this._sequence++;this._data={};if(this._hass)this._init();this.render();}
+  setConfig(config){
+    const cardId = config.card_id || 'default';
+    if (this.config?.card_id !== cardId) this._hiddenEnergySeries.clear();
+    this.config={...DEFAULTS,...config,card_id:cardId};this._settings={};this._ready=false;this._sequence++;this._data={};if(this._hass)this._init();this.render();
+  }
   get settings(){return {...this.config,...this._settings};}
   get timezone(){return this._hass?.config?.time_zone||'Europe/Berlin';}
   get today(){return dayKey(new Date(),this.timezone);}
@@ -24,7 +36,7 @@ class PVManagerCard extends HTMLElement {
     this._busy=true;this._errors=[];this._data={};this.render();
     const ids=keys=>[...new Set(keys.map(k=>s[k]).filter(Boolean))];
     const query=async(entities,period,types,units)=>entities.length?this._hass.callWS({type:'recorder/statistics_during_period',start_time:new Date(r.start).toISOString(),end_time:new Date(end).toISOString(),statistic_ids:entities,period,types,units}):{};
-    const powerIds=ids(['solar','grid','home','battery']),socIds=ids(['soc']),energyIds=ids(Object.keys(FIELDS).filter(k=>k.endsWith('_energy')));
+    const powerIds=ids(['solar','grid','home','battery']),socIds=ids(['soc']),energyIds=ids(Object.keys(ENERGY_ROLES));
     const old=(Date.now()-r.start)>7*86400000,pp=this.period==='day'&&!old?'5minute':this.period==='year'?'day':'hour',ep=this.period==='day'?'hour':this.period==='year'?'month':'day';
     const requests=await Promise.allSettled([query(powerIds,pp,['mean'],{power:'W'}),query(socIds,pp,['mean'],{}),query(energyIds,ep,['change'],{energy:'kWh'})]);
     if(request!==this._sequence)return;
@@ -39,15 +51,63 @@ class PVManagerCard extends HTMLElement {
     const missing=['solar','grid','home',...(s.battery?['battery']:[])].filter(k=>v[k]===null);
     return energyFlow({nodes,flows:a.flows,animated:s.animated})+(missing.length?notice('Messwerte fehlen: '+missing.map(k=>FIELDS[k][0]).join(', ')+'. Sensoren und Einheiten in den Einstellungen prüfen.'):'')+(a.difference!==null&&Math.abs(a.difference)>Math.max(100,(v.home||0)*.05)?notice('Leistungsbilanz weicht um '+watts(a.difference)+' ab. Sensorzuordnung und Vorzeichen prüfen. Die Verbindungslinien zeigen rechnerisch zugeordnete Flüsse.'):'');
   }
+  _chart(options) {
+    const dateOptions = {
+      day: {hour: '2-digit', minute: '2-digit'},
+      week: {day: '2-digit', month: '2-digit', hour: '2-digit'},
+      month: {day: '2-digit', month: '2-digit'},
+      year: {month: 'short'},
+    };
+    const formatter = new Intl.DateTimeFormat('de-DE', {
+      timeZone: this.timezone,
+      ...dateOptions[this.period],
+    });
+    return seriesChart({
+      width: Math.max(280, Math.min(700, (this.clientWidth || 732) - 32)),
+      formatX: timestamp => formatter.format(timestamp),
+      ...options,
+    });
+  }
+  _energySeries() {
+    const settings = this.settings;
+    return Object.entries(ENERGY_ROLES).filter(([key]) => settings[key]).map(([key, role]) => ({
+      id: key,
+      role,
+      label: FIELDS[key][0],
+      points: energyPoints(this._data.energy?.[settings[key]]),
+    }));
+  }
+  _energyChart(series) {
+    const visible = series.filter(item => !this._hiddenEnergySeries.has(item.id));
+    if (!visible.length) return notice('Wähle mindestens eine Datenreihe für den Energieverlauf aus.');
+    return this._chart({id: 'energy-chart', title: 'Energieverlauf', series: visible, unit: 'kWh', kind: 'bar'});
+  }
+  _energyHistory(series) {
+    if (!series.length) return notice('Für den Energieverlauf bitte kWh-Zähler in den Einstellungen auswählen.');
+    const filters = checkboxGroup({
+      id: 'energy-series-filter',
+      label: 'Balken anzeigen',
+      items: series.map(item => ({value: item.id, label: item.label})),
+      values: series.filter(item => !this._hiddenEnergySeries.has(item.id)).map(item => item.id),
+      action: 'filter-energy-series',
+    });
+    return `${filters}<div id="energy-chart-content">${this._energyChart(series)}</div>`;
+  }
   _history(){
     const s=this.settings,r=this._range(),step=this.period==='day'?(this._resolution==='5minute'?300000:3600000):this.period==='week'?3600000:this.period==='month'?21600000:86400000;
-    const chart=options=>seriesChart({width:Math.max(280,Math.min(700,(this.clientWidth||732)-32)),...options});
-    const formatX=t=>new Intl.DateTimeFormat('de-DE',{timeZone:this.timezone,...(this.period==='day'?{hour:'2-digit',minute:'2-digit'}:this.period==='year'?{month:'short'}:{day:'2-digit',month:'2-digit',...(this.period==='week'?{hour:'2-digit'}:{})})}).format(new Date(t));
     const powerSeries=['solar','home','grid','battery'].filter(k=>s[k]).map(k=>({role:k,label:{solar:'PV',home:'Haus',grid:'Netz (+ Bezug / − Einspeisung)',battery:'Batterie (+ Entladen / − Laden)'}[k],points:chartPoints(this._data.power?.[s[k]],{...r,step,sign:(k==='grid'&&s.grid_positive==='export'||k==='battery'&&s.battery_positive==='charge')?-1:1})}));
-    const energyKeys=Object.keys(FIELDS).filter(k=>k.endsWith('_energy')&&s[k]),roles={solar_energy:'solar',home_energy:'home',import_energy:'grid',export_energy:'export',charge_energy:'charge',discharge_energy:'battery'};
-    const energySeries=energyKeys.map(k=>({role:roles[k],label:FIELDS[k][0],points:energyPoints(this._data.energy?.[s[k]])}));
+    const energySeries = this._energySeries();
     const summaries=energySeries.map(series=>{const valid=series.points.filter(p=>p.y!==null);return {label:series.label,value:(valid.length?n(valid.reduce((sum,p)=>sum+p.y,0),2):'—')+' kWh',icon:'energy-'+({export:'grid',charge:'battery'}[series.role]||series.role)};});
-    return `<div class="toolbar">${selectField({id:'period',label:'Zeitraum',value:this.period,options:PERIODS})}</div>`+dateNavigation({label:this.period==='day'?r.first:r.first+' – '+shiftAnchor('day',r.last,-1),previousLabel:'Vorheriger Zeitraum',nextLabel:'Nächster Zeitraum',nextDisabled:r.end>Date.now(),todayLabel:'Heute'})+(this._busy?notice('Historische Werte werden geladen …'):'')+(this._errors||[]).map(e=>notice(e,{error:true})).join('')+(summaries.length?sensorOverview({id:'energy-summary',title:'Erfasste Energie im Zeitraum',groups:[{title:'',items:summaries}]}):'')+chart({id:'power-chart',title:'Leistungsverlauf',series:powerSeries,unit:'W',formatX,formatValue:v=>n(v,0)})+`<p class="hint">Zeitliche Mittelwerte · Auflösung ${this.period==='month'?'6 Stunden':this._resolution==='5minute'?'5 Minuten':this._resolution==='day'?'1 Tag':'1 Stunde'}. Ältere Tageswerte verwenden Stundenstatistiken.</p>`+(s.soc?chart({id:'soc-chart',title:'Batterie-Ladezustand',series:[{role:'battery',label:'Ladezustand',points:chartPoints(this._data.soc?.[s.soc],{...r,step})}],unit:'%',min:0,max:100,formatX}):'')+(energySeries.length?chart({id:'energy-chart',title:'Energieverlauf',series:energySeries,unit:'kWh',kind:'bar',formatX}):notice('Für den Energieverlauf bitte kWh-Zähler in den Einstellungen auswählen.'))+`<p class="hint">Historie aus dem Home-Assistant-Recorder. Lücken bedeuten fehlende Statistiken. Energiesummen enthalten nur erfasste Intervalle; das laufende Intervall kann noch fehlen.</p>`;
+    return `<div class="toolbar">${selectField({id:'period',label:'Zeitraum',value:this.period,options:PERIODS})}</div>`+
+      dateNavigation({label:this.period==='day'?r.first:r.first+' – '+shiftAnchor('day',r.last,-1),previousLabel:'Vorheriger Zeitraum',nextLabel:'Nächster Zeitraum',nextDisabled:r.end>Date.now(),todayLabel:'Heute'})+
+      (this._busy?notice('Historische Werte werden geladen …'):'')+
+      (this._errors||[]).map(e=>notice(e,{error:true})).join('')+
+      (summaries.length?sensorOverview({id:'energy-summary',title:'Erfasste Energie im Zeitraum',groups:[{title:'',items:summaries}]}):'')+
+      this._chart({id:'power-chart',title:'Leistungsverlauf',series:powerSeries,unit:'W',formatValue:v=>n(v,0)})+
+      `<p class="hint">Zeitliche Mittelwerte · Auflösung ${this.period==='month'?'6 Stunden':this._resolution==='5minute'?'5 Minuten':this._resolution==='day'?'1 Tag':'1 Stunde'}. Ältere Tageswerte verwenden Stundenstatistiken.</p>`+
+      (s.soc?this._chart({id:'soc-chart',title:'Batterie-Ladezustand',series:[{role:'battery',label:'Ladezustand',points:chartPoints(this._data.soc?.[s.soc],{...r,step})}],unit:'%',min:0,max:100}):'')+
+      this._energyHistory(energySeries)+
+      `<p class="hint">Historie aus dem Home-Assistant-Recorder. Lücken bedeuten fehlende Statistiken. Energiesummen enthalten nur erfasste Intervalle; das laufende Intervall kann noch fehlen.</p>`;
   }
   _settingsPage(){const s=this._draft||this.settings,states=this._hass?.states||{};
     const sensors=kind=>Object.entries(states).filter(([id,v])=>id.startsWith('sensor.')&&(kind==='power'?['W','kW','MW'].includes(v.attributes.unit_of_measurement):kind==='energy'?['Wh','kWh','MWh'].includes(v.attributes.unit_of_measurement):v.attributes.unit_of_measurement==='%')).map(([value,v])=>({value,label:v.attributes.friendly_name||value,description:value})).sort((a,b)=>a.label.localeCompare(b.label,'de'));
@@ -55,13 +115,20 @@ class PVManagerCard extends HTMLElement {
     return (!this._admin?notice('Die Einstellungen kann ein Home-Assistant-Administrator ändern.'):'')+section({id:'general',title:'Darstellung',content:field({id:'title',label:'Name der Karte',value:s.title,disabled:!this._admin})+row({title:'Energiefluss animieren',trailing:toggle({label:'Animation',action:'animation',checked:s.animated,disabled:!this._admin})})})+section({id:'power-sensors',title:'Leistung und Batterie',content:['solar','grid','home','battery','soc'].map(sensorField).join('')+selectField({id:'grid-positive',label:'Positiver Netzwert bedeutet',value:s.grid_positive,disabled:!this._admin,options:[{value:'import',label:'Netzbezug'},{value:'export',label:'Einspeisung'}]})+selectField({id:'battery-positive',label:'Positiver Batteriewert bedeutet',value:s.battery_positive,disabled:!this._admin,options:[{value:'discharge',label:'Entladen'},{value:'charge',label:'Laden'}]})})+section({id:'energy-sensors',title:'Energiezähler (optional)',expanded:false,content:notice('Kumulierte Energiezähler in Wh, kWh oder MWh mit Langzeitstatistik wählen. Tageszähler benötigen state_class total_increasing oder korrekte Reset-Metadaten.')+Object.keys(FIELDS).filter(k=>k.endsWith('_energy')).map(sensorField).join('')})+`<div class="page-actions">${button({label:'Speichern',icon:'save',action:'save',variant:'primary',disabled:!this._admin||this._saving})}${button({label:'Verwerfen',action:'discard'})}</div>`+versionInfo({frontend:VERSION,ui:UI_VERSION});}
   render(){if(!this.config)return;const page=this.page;this.shadowRoot.innerHTML=`<style>${UI_CSS}</style><ha-card>${navigation({label:this.settings.title,items:[{id:'live',label:'Energiefluss'},{id:'history',label:'Verlauf'}],active:page,actions:[{icon:'refresh',label:'Aktualisieren',action:'refresh',disabled:this._busy}]})}<main><div class="page-actions"><h3>${escapeHtml(this.settings.title)}</h3></div>${this._error?notice(this._error,{error:true}):''}${this._message?notice(this._message):''}${page==='settings'?this._settingsPage():page==='history'?this._history():page==='help'?this._help():`<div data-live>${this._live()}</div>`}</main></ha-card>`;}
   _help(){return section({id:'help-content',title:'PV Manager einrichten',content:'<p>In den Einstellungen PV-Leistung, Netzleistung und Hausverbrauch zuordnen. Batterie und Ladezustand sind optional. Die bekannten Sofar-Entitäten sind vorbelegt.</p><p>Netz und Batterie können je nach Wechselrichter unterschiedliche Vorzeichen verwenden. Bei Einspeisung beziehungsweise Laden die Richtungsanzeige prüfen und das Vorzeichen bei Bedarf umstellen.</p><p>Für Verläufe benötigen Leistungssensoren state_class measurement; Energiezähler total oder total_increasing sowie aktive Recorder-Statistiken. Die Karte speichert keine eigene Messhistorie. Im Diagramm mit Maus, Finger oder Pfeiltasten einzelne Werte ansehen.</p><p>Mehrere Karten sind mit unterschiedlichen card_id-Werten unabhängig konfigurierbar. Einstellungen werden zentral gespeichert; Änderungen sind Administratoren vorbehalten.</p>'});}
-  _onChange(e){if(e.target.id==='period'){this.period=e.target.value;this.anchor=null;this._fetch();return;}if(!this._admin)return;this._draft||={...this.settings};const ids={title:'title','grid-positive':'grid_positive','battery-positive':'battery_positive'};if(ids[e.target.id])this._draft[ids[e.target.id]]=e.target.value;}
+  _onChange(e){if(e.target.id==='period'){this.period=e.target.value;this.anchor=null;this._fetch();return;}const key={title:'title','grid-positive':'grid_positive','battery-positive':'battery_positive'}[e.target.id];if(!this._admin||!key)return;this._draft||={...this.settings};this._draft[key]=e.target.value;}
   async _action({action,data,value,element}){
     if(action==='navigate'){this.page=data.page;this._message=null;this.render();if(this.page==='history')this._fetch();return;}
     if(action==='energy-node'){const entity=this.settings[{solar:'solar',grid:'grid',home:'home',battery:'battery'}[data.node]]||this.settings.soc;if(entity)this.dispatchEvent(new CustomEvent('hass-more-info',{detail:{entityId:entity},bubbles:true,composed:true}));return;}
     if(['previous-period','next-period','today'].includes(action)){this.anchor=action==='today'?this.today:shiftAnchor(this.period,this.anchor||this.today,action==='previous-period'?-1:1);this._fetch();return;}
     if(action==='refresh'){if(!this._ready)this._init();else if(this.page==='history')this._fetch();else this._updateLive();return;}
     if(action==='discard'){this._draft=null;this._message=null;this.render();return;}
+    if (action === 'filter-energy-series') {
+      const series = this._energySeries();
+      const selected = new Set(value);
+      this._hiddenEnergySeries = new Set(series.filter(item => !selected.has(item.id)).map(item => item.id));
+      this.shadowRoot.getElementById('energy-chart-content').innerHTML = this._energyChart(series);
+      return;
+    }
     if(!this._admin)return;
     if(action==='sensor-select'){this._draft||={...this.settings};const key=element?.id.replace(/^sensor-/, '').replace(/-control$/, '');if(FIELDS[key])this._draft[key]=value;return;}
     if(action==='animation'){this._draft||={...this.settings};this._draft.animated=!this._draft.animated;this.render();return;}
