@@ -1,7 +1,7 @@
-import {UI_CSS,UI_VERSION,navigation,section,row,field,selectField,combobox,toggle,button,notice,versionInfo,bindUI,energyFlow,seriesChart,bindSeriesCharts,dateNavigation,sensorOverview,escapeHtml,checkboxGroup} from './family-ui/1.9.1/family-ui.js';
+import {UI_CSS,UI_VERSION,navigation,section,row,field,selectField,combobox,toggle,button,notice,versionInfo,bindUI,energyFlow,seriesChart,bindSeriesCharts,dateNavigation,sensorOverview,escapeHtml,checkboxGroup} from './family-ui/1.9.2/family-ui.js';
 import {DEFAULTS,FIELDS,liveValues,allocateFlows,dayKey,periodRange,shiftAnchor,chartPoints,energyPoints} from './data.js';
 const uniqueId=()=>globalThis.crypto?.randomUUID?.()||'pv_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);
-const VERSION='1.0.2',PERIODS=[{value:'day',label:'Tag'},{value:'week',label:'Woche'},{value:'month',label:'Monat'},{value:'year',label:'Jahr'}];
+const VERSION='1.0.3',PERIODS=[{value:'day',label:'Tag'},{value:'week',label:'Woche'},{value:'month',label:'Monat'},{value:'year',label:'Jahr'}];
 const ENERGY_ROLES = {
   solar_energy: 'solar',
   import_energy: 'grid',
@@ -66,6 +66,7 @@ class PVManagerCard extends HTMLElement {
       width: Math.max(280, Math.min(700, (this.clientWidth || 732) - 32)),
       formatX: timestamp => formatter.format(timestamp),
       ...options,
+      kind: 'bar',
     });
   }
   _energySeries() {
@@ -80,7 +81,7 @@ class PVManagerCard extends HTMLElement {
   _energyChart(series) {
     const visible = series.filter(item => !this._hiddenEnergySeries.has(item.id));
     if (!visible.length) return notice('Wähle mindestens eine Datenreihe für den Energieverlauf aus.');
-    return this._chart({id: 'energy-chart', title: 'Energieverlauf', series: visible, unit: 'kWh', kind: 'bar'});
+    return this._chart({id: 'energy-chart', title: 'Energieverlauf', series: visible, unit: 'kWh'});
   }
   _energyHistory(series) {
     if (!series.length) return notice('Für den Energieverlauf bitte kWh-Zähler in den Einstellungen auswählen.');

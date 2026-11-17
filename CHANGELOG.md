@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.3 – 2026-11-17
+
+- Leistung, Batterie-Ladezustand und Energie durchgängig als Balkendiagramme.
+- HA UI Kit 1.9.2 positioniert dichte Balkengruppen ohne Überlagerung und zeigt bei positiven und negativen Werten eine Nulllinie.
+
 ## 1.0.2 – 2026-11-17
 
 - Datenreihen im Energie-Balkendiagramm einzeln ein- und ausblenden. Die Karte verwendet dafür die gemeinsame Checkbox-Gruppe aus HA UI Kit 1.9.1.

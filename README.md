@@ -1,12 +1,12 @@
 # PV Manager
 
-Home-Assistant-Karte für PV, Netz, Haus und Batteriespeicher. Die komplette Oberfläche verwendet das lokal gebündelte **HA UI Kit 1.9.1**. Keine CDN-Abhängigkeit, keine Cloud und keine zusätzliche Diagrammkarte nötig.
+Home-Assistant-Karte für PV, Netz, Haus und Batteriespeicher. Die komplette Oberfläche verwendet das lokal gebündelte **HA UI Kit 1.9.2**. Keine CDN-Abhängigkeit, keine Cloud und keine zusätzliche Diagrammkarte nötig.
 
 ## Funktionen
 
 - Animierter Energiefluss wie in der Referenz: PV oben, Netz links, Haus rechts, Batterie unten; Ladezustand und eindeutige Bezugs-/Laderichtung.
 - Tages-, Wochen-, Monats- und Jahresverlauf mit Datumsnavigation.
-- Leistung als Linien (Tag 5 Minuten, Woche 1 Stunde, Monat 6 Stunden, Jahr 1 Tag), Batterie-Ladezustand als eigene Linie, Energieerträge als Balken (Tag Stunden, Woche/Monat Tage, Jahr Monate).
+- Alle Verläufe als Balkendiagramme. Leistung und Batterie-Ladezustand: Tag 5 Minuten, Woche 1 Stunde, Monat 6 Stunden, Jahr 1 Tag. Energie: Tag Stunden, Woche/Monat Tage, Jahr Monate.
 - Unter **Balken anzeigen** lassen sich die konfigurierten Energiereihen einzeln ein- und ausblenden. Die Auswahl bleibt beim Wechsel des Zeitraums erhalten.
 - Einzelwerte mit Maus, Finger oder Pfeiltasten; Anzeige oberhalb des Diagramms.
 - Suchbare Sensorzuordnung und anpassbare Vorzeichen. Batterie und kWh-Zähler optional. Mehrere unabhängige Karten über `card_id`.
@@ -67,7 +67,7 @@ npm run test:browser
 npm run package
 ```
 
-`tests/demo.html` ist eine lokale Vorschau mit klaren Beispieldaten. Die produktive Karte enthält keine Demowerte. Die festen UI-Dateien samt Lizenz und Prüfsummen liegen unter `frontend/family-ui/1.9.1`. Änderungen an gemeinsamem Aussehen erfolgen im [HA UI Kit](https://github.com/v9h45n47mh-lab/ha-ui-kit).
+`tests/demo.html` ist eine lokale Vorschau mit klaren Beispieldaten. Die produktive Karte enthält keine Demowerte. Die festen UI-Dateien samt Lizenz und Prüfsummen liegen unter `frontend/family-ui/1.9.2`. Änderungen an gemeinsamem Aussehen erfolgen im [HA UI Kit](https://github.com/v9h45n47mh-lab/ha-ui-kit).
 
 ## PV-Manager-Icon
 

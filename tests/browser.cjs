@@ -13,6 +13,17 @@ const energyChart = card.locator('#energy-chart');
 const energyValues = energyChart.locator('.fui-chart-values');
 await card.getByRole('button', {name: 'Vorheriger Zeitraum'}).click();
 await page.waitForFunction(() => !document.querySelector('pv-manager-card')._busy);
+for (const id of ['power-chart', 'soc-chart', 'energy-chart']) {
+  const chart = card.locator('#' + id);
+  assert.ok(await chart.locator('.fui-chart-bar').count(), id + ' shows bars');
+  assert.equal(await chart.locator('.fui-chart-line, .fui-chart-dot').count(), 0);
+}
+assert.equal(await card.locator('#power-chart .fui-chart-zero').count(), 1);
+const powerChart = card.locator('#power-chart');
+const powerGeometry = JSON.parse(await powerChart.getAttribute('data-chart'));
+await powerChart.locator('svg').press('Home');
+assert.equal(Number(await powerChart.locator('.fui-chart-cursor').getAttribute('x1')), 52 + powerGeometry.inset);
+assert.equal(await powerChart.locator('.fui-chart-inspector strong').innerText(), powerGeometry.labels[0]);
 const callsBeforeFiltering = await page.evaluate(() => window.calls.length);
 assert.ok(await feedIn.isChecked());
 assert.ok(await energyChart.locator('.fui-chart-bar.fui-energy-export').count());

@@ -53,4 +53,4 @@ jobs:
           RELEASE_COMMIT: ${{ github.sha }}
         run: |
           version="$(python3 -c "import json; print(json.load(open('package.json'))['version'])")"
-          gh release create "v${version}" dist/*.zip --target "$RELEASE_COMMIT" --title "PV Manager ${version}" --notes "Energiefluss, Recorder-Verläufe und HA UI Kit 1.9.1. Installation und Sensorzuordnung siehe README."
+          gh release create "v${version}" dist/*.zip --target "$RELEASE_COMMIT" --title "PV Manager ${version}" --notes "Balkendiagramme für Leistung, Batterieladezustand und Energie mit HA UI Kit 1.9.2. Installation und Sensorzuordnung siehe README."

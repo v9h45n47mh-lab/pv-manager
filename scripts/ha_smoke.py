@@ -27,7 +27,7 @@ async def main():
             assert flow['type'] == 'create_entry', flow
             await hass.async_block_till_done()
             async with ClientSession() as session:
-                for name in ['pv-manager-card.js', 'data.js', 'family-ui/1.9.1/family-ui.js']:
+                for name in ['pv-manager-card.js', 'data.js', 'family-ui/1.9.2/family-ui.js']:
                     async with session.get('http://127.0.0.1:8123/pv-manager/' + name) as response:
                         assert response.status == 200, (name, response.status)
                         assert 'javascript' in response.headers['Content-Type'], response.headers
