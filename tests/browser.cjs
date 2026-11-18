@@ -15,6 +15,30 @@ assert.ok(liveFlows.every(flow => flow.animation === 'fui-energy-move'));
 await page.emulateMedia({reducedMotion: 'reduce'});
 assert.ok((await flowDots()).every(flow => flow.animation === 'none'));
 await page.emulateMedia({reducedMotion: 'no-preference'});
+const flowSvg = card.locator('.fui-energy-flow > svg');
+const firstFrame = await flowSvg.screenshot();
+const motion = await page.evaluate(async () => {
+  const element = document.querySelector('pv-manager-card');
+  const selector = '.fui-flow-line.animated';
+  const path = element.shadowRoot.querySelector(selector);
+  const hass = window.mockHass;
+  const reading = hass.states['sensor.inverter_load_power'];
+  const initial = reading.state;
+  const offsets = new Set();
+  let samePath = true;
+  for (let frame = 0; frame < 12; frame++) {
+    await new Promise(requestAnimationFrame);
+    reading.state = frame % 2 ? initial : '2800';
+    element.hass = {...hass};
+    const current = element.shadowRoot.querySelector(selector);
+    samePath &&= current === path;
+    offsets.add(Number.parseFloat(getComputedStyle(current).strokeDashoffset));
+  }
+  return {samePath, offsets: [...offsets]};
+});
+assert.ok(motion.samePath, 'live power updates keep the animated SVG path');
+assert.ok(motion.offsets.every(Number.isFinite) && motion.offsets.length > 2, 'dots move across rendered frames');
+assert.ok(!firstFrame.equals(await flowSvg.screenshot()), 'animation changes the rendered diagram');
 const setFlow = power => page.evaluate(power => {
   const hass = window.mockHass;
   for (const [suffix, value] of Object.entries({

@@ -1,7 +1,7 @@
-import {UI_CSS,UI_VERSION,navigation,section,row,field,selectField,combobox,toggle,button,filterButton,notice,versionInfo,bindUI,energyFlow,seriesChart,bindSeriesCharts,dateNavigation,escapeHtml} from './family-ui/1.9.5/family-ui.js';
-import {DEFAULTS,FIELDS,liveValues,allocateFlows,dayKey,historyRange,validCustomRange,shiftAnchor,HISTORY_INTERVALS,HOUR,QUARTER_HOUR,calendarBuckets,historyPoints,energyFromPower} from './data.js?v=1.0.10';
+import {UI_CSS,UI_VERSION,navigation,section,row,field,selectField,combobox,toggle,button,filterButton,notice,versionInfo,bindUI,energyFlow,seriesChart,bindSeriesCharts,dateNavigation,escapeHtml} from './family-ui/1.9.6/family-ui.js';
+import {DEFAULTS,FIELDS,liveValues,allocateFlows,dayKey,historyRange,validCustomRange,shiftAnchor,HISTORY_INTERVALS,HOUR,QUARTER_HOUR,calendarBuckets,historyPoints,energyFromPower} from './data.js?v=1.0.11';
 const uniqueId=()=>globalThis.crypto?.randomUUID?.()||'pv_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);
-const VERSION = '1.0.10';
+const VERSION = '1.0.11';
 const PERIODS = {
   day: {label: 'Tag', previous: 'Vorheriger Tag', next: 'Nächster Tag'},
   week: {label: 'Woche', previous: 'Vorherige Woche', next: 'Nächste Woche'},
@@ -30,6 +30,31 @@ function energyCounterIds(configuredId, powerId, {powerSuffixes, counterSuffixes
 }
 const n=(v,d=1)=>v===null||v===undefined?'—':Number(v).toLocaleString('de-DE',{maximumFractionDigits:d});
 const watts=v=>v===null?'—':Math.abs(v)>=1000?n(Math.abs(v)/1000,2)+' kW':n(Math.abs(v),0)+' W';
+
+function updateFlowPaths(svg, nextSvg) {
+  const key = path => path.getAttribute('d') + ':' + path.classList.contains('fui-flow-track');
+  const existing = new Map([...svg.children].map(path => [key(path), path]));
+  let cursor = svg.firstElementChild;
+  for (const next of [...nextSvg.children]) {
+    const id = key(next);
+    const path = existing.get(id);
+    if (!path) {
+      svg.insertBefore(next, cursor);
+      continue;
+    }
+    // Keep the connected SVG path so its animation timeline survives data updates.
+    for (const name of ['class', 'style', 'pathLength']) {
+      const value = next.getAttribute(name);
+      if (path.getAttribute(name) === value) continue;
+      if (value === null) path.removeAttribute(name);
+      else path.setAttribute(name, value);
+    }
+    existing.delete(id);
+    cursor = path.nextElementSibling;
+  }
+  for (const path of existing.values()) path.remove();
+}
+
 class PVManagerCard extends HTMLElement {
   constructor(){super();this.attachShadow({mode:'open'});this.page='live';this.period='day';this._anchors={};this._data={};this._sequence=0;this._hiddenSeries=new Set();}
   static getStubConfig(){return {card_id:uniqueId(),title:'PV-Anlage'};}
@@ -151,7 +176,30 @@ class PVManagerCard extends HTMLElement {
       }
     }
   }
-  _updateLive(){const live=this.shadowRoot.querySelector('[data-live]');if(live)live.innerHTML=this._live();}
+  _updateLive() {
+    const live = this.shadowRoot.querySelector('[data-live]');
+    if (!live) return;
+    const markup = this._live();
+    if (markup === this._liveMarkup) return;
+    this._liveMarkup = markup;
+
+    const template = this.ownerDocument.createElement('template');
+    template.innerHTML = markup;
+    const flow = live.firstElementChild;
+    const [nextFlow, ...notices] = template.content.children;
+    const [svg, ...nodes] = flow.children;
+    const [nextSvg, ...nextNodes] = nextFlow.children;
+    updateFlowPaths(svg, nextSvg);
+
+    for (const [index, node] of nodes.entries()) {
+      const next = nextNodes[index];
+      if (!next) node.remove();
+      else if (!node.isEqualNode(next)) node.replaceWith(next);
+    }
+    flow.append(...nextNodes.slice(nodes.length));
+    while (flow.nextElementSibling) flow.nextElementSibling.remove();
+    live.append(...notices);
+  }
   _live(){
     const s=this.settings,v=liveValues(this._hass?.states||{},s),hasBattery=Boolean(s.battery||s.soc),a=allocateFlows(v,Boolean(s.battery));
     const nodes=[{id:'solar',label:'PV',value:watts(v.solar)},{id:'grid',label:'Netz',value:watts(v.grid),detail:v.grid===null?'':v.grid>=0?'Bezug →':'← Einspeisung'},{id:'home',label:'Haus',value:watts(v.home)}];
@@ -265,7 +313,8 @@ class PVManagerCard extends HTMLElement {
     const active = this.shadowRoot.activeElement;
     const focus = active?.closest('[data-period-controls]') ? active.dataset : null;
     const page = this.page;
-    this.shadowRoot.innerHTML=`<style>${UI_CSS}</style><ha-card>${navigation({label:this.settings.title,items:[{id:'live',label:'Energiefluss'},{id:'history',label:'Verlauf'}],active:page,actions:[{icon:'refresh',label:'Aktualisieren',action:'refresh',disabled:this._busy}]})}<main><div class="page-actions"><h3>${escapeHtml(this.settings.title)}</h3></div>${this._error?notice(this._error,{error:true}):''}${this._message?notice(this._message):''}${page==='settings'?this._settingsPage():page==='history'?this._history():page==='help'?this._help():`<div data-live>${this._live()}</div>`}</main></ha-card>`;
+    this._liveMarkup = page === 'live' ? this._live() : '';
+    this.shadowRoot.innerHTML=`<style>${UI_CSS}</style><ha-card>${navigation({label:this.settings.title,items:[{id:'live',label:'Energiefluss'},{id:'history',label:'Verlauf'}],active:page,actions:[{icon:'refresh',label:'Aktualisieren',action:'refresh',disabled:this._busy}]})}<main><div class="page-actions"><h3>${escapeHtml(this.settings.title)}</h3></div>${this._error?notice(this._error,{error:true}):''}${this._message?notice(this._message):''}${page==='settings'?this._settingsPage():page==='history'?this._history():page==='help'?this._help():`<div data-live>${this._liveMarkup}</div>`}</main></ha-card>`;
     if (focus?.action) {
       const selector = focus.period
         ? `[data-action="select-period"][data-period="${focus.period}"]`

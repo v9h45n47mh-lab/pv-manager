@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.11 – 2026-11-18
+
+- Die Punkte im Energiefluss bewegen sich wieder und laufen bei Live-Aktualisierungen weiter.
+- HA UI Kit 1.9.6 lokal gebündelt.
+
 ## 1.0.10 – 2026-11-18
 
 - Leistungsabhängige Punktanzahl im Energiefluss. Kleine Flüsse zeigen wenige Punkte, große Flüsse bis zu acht.
