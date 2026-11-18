@@ -9,8 +9,13 @@ for file in component.rglob("*.py"):
     ast.parse(file.read_text())
 for file in component.rglob("*.json"):
     json.loads(file.read_text())
-assert json.loads((component / "manifest.json").read_text())["version"] == json.loads((root / "package.json").read_text())["version"]
+version = json.loads((component / "manifest.json").read_text())["version"]
+assert version == json.loads((root / "package.json").read_text())["version"]
+assert f'VERSION = "{version}"' in (component / "__init__.py").read_text()
 frontend = component / "frontend"
+card = (frontend / "pv-manager-card.js").read_text()
+assert f"const VERSION = '{version}'" in card
+assert f"from './data.js?v={version}'" in card, "Version the data module with the card to prevent stale imports"
 lock = json.loads((frontend / "family-ui.lock.json").read_text())
 assert lock["version"] == "1.9.4"
 for file, expected in lock["files"].items():

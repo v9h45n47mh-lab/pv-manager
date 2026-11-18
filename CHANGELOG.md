@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.9 – 2026-11-18
+
+- Das Kartenmodul und das Datenmodul verwenden dieselbe Versionskennung in der URL. Eine alte Datenmoduldatei im Browsercache kann die Registrierung des neuen Kartenelements nicht mehr blockieren.
+
 ## 1.0.8 – 2026-11-18
 
 - Die Karte wird als Dashboard-Ressource registriert. So ist das Kartenelement beim Laden des Dashboards verfügbar.
