@@ -22,7 +22,7 @@ if(msg.type==='pv_manager/save'){window.saved=msg.settings;return {saved:true};}
 if(msg.type==='recorder/statistics_during_period'){
 if(window.failRecorder)throw Error('Recorder nicht erreichbar');
 const out={},start=Date.parse(msg.start_time),end=Date.parse(msg.end_time);
-const nextBoundary = t => msg.period === '5minute' ? t + 300000 :
+const nextBoundary = t => msg.period === '5minute' ? t + 300000 : msg.period === 'hour' ? t + 3600000 :
   midnight(shiftAnchor(msg.period, dayKey(new Date(t), 'Europe/Berlin'), 1), 'Europe/Berlin');
 for(const id of msg.statistic_ids){out[id]=[];for(let t=start,i=0;t<end;t=nextBoundary(t),i++){
 const solar=Math.max(0,Math.sin(((t-start)/86400000%1-.25)*Math.PI*2))*6200;

@@ -5,7 +5,7 @@ Home-Assistant-Karte für PV, Netz, Haus und Batteriespeicher. Die komplette Obe
 ## Funktionen
 
 - Animierter Energiefluss wie in der Referenz: PV oben, Netz links, Haus rechts, Batterie unten; Ladezustand und eindeutige Bezugs-/Laderichtung.
-- Tages-, Wochen-, Monats- und Jahresverlauf mit Datumsnavigation.
+- Zeitraumwahl wie in der Wetteranalyse mit Schaltflächen, Pfeilen und freier Datumsauswahl. Die Jahresansicht zeigt Monatssummen.
 - Ein Energie-Balkendiagramm. Tag mit 15-Minuten-Summen, Woche und Monat mit Tagessummen, Jahr mit Monatssummen.
 - Erzeugung, Verbrauch und Netzbezug in kWh. Die farbigen Legendeneinträge zeigen die Zeitraum-Summen und schalten ihre Balken ein oder aus.
 - Einzelwerte mit Maus, Finger oder Pfeiltasten; Anzeige oberhalb des Diagramms.
@@ -43,17 +43,19 @@ Für eine zweite Karte eine eigene `card_id` verwenden. Diese darf Buchstaben, Z
 | Haus | `sensor.inverter_load_power` | W / kW / MW |
 | Batterie | `sensor.inverter_battery_power` | W / kW / MW |
 | Ladezustand | `sensor.inverter_battery` | % |
-| Energiezähler | Passende Sofar-Gesamt- oder Tageszähler automatisch, eigene Zuordnung unter Energiezähler | Wh / kWh / MWh |
+| Erzeugung | `sensor.inverter_today_production` | Wh / kWh / MWh |
+| Verbrauch | `sensor.inverter_today_load_consumption` | Wh / kWh / MWh |
+| Netzbezug | `sensor.inverter_today_energy_import` | Wh / kWh / MWh |
 
 Standard: positiver Netzwert = **Bezug**, positiver Batteriewert = **Entladen**. Beide Regeln sind umkehrbar. Bitte anhand realer Einspeisung/Ladung prüfen. Energieflussverbindungen sind rechnerische Zuordnungen aus den Gesamtleistungen mit Priorität PV → Haus → Batterie → Netz. Die Bilanz kann durch Messzeitpunkte, Wechselrichterverluste oder falsche Zuordnung abweichen; eine größere Abweichung wird angezeigt. Einzelne Herkunftsflüsse werden nicht separat gemessen.
 
 ## Historische Daten
 
-Die Karte nutzt die Home-Assistant-Recorder-Statistik. Energiezähler für Erzeugung, Verbrauch und Netzbezug benötigen `state_class: total` oder `total_increasing` mit korrekten Reset-Metadaten. Manuell zugeordnete Energiezähler haben Vorrang vor Sofar-Vorschlägen. Ist für eine Kennzahl im gewählten Zeitraum keine brauchbare Zählerstatistik vorhanden, schätzt die Karte die kWh aus den Leistungsstatistiken des zugeordneten Live-Sensors und kennzeichnet die Kennzahl. Die Tagesansicht verwendet dafür 5-Minuten-Statistiken, längere Ansichten verwenden Stundenstatistiken. Beim Netzbezug zählt nur die Bezugsrichtung. Ein Richtungswechsel innerhalb desselben Recorder-Intervalls kann den geschätzten Netzbezug verringern.
+Der aktuelle Tag zeigt die letzten 24 Stunden. Die aktuelle Woche umfasst heute und die sieben vorherigen Tage. Mit den Pfeilen springst du zu vollständigen Kalendertagen, Kalenderwochen (Montag bis Sonntag), Monaten und Jahren. Ein freier Zeitraum umfasst beide gewählten Daten und bis zu 366 Kalendertage.
 
-Es werden vorhandene Daten verwendet. Die Karte erzeugt weder Messhistorie vor der Installation noch fehlende Langzeitstatistiken. Leere Intervalle bleiben leer. Die Tagesansicht bildet 15-Minuten-Werte aus den 5-Minuten-Kurzzeitstatistiken. Deren Verfügbarkeit ist durch die Recorder-Aufbewahrung begrenzt. Woche, Monat und Jahr beziehen ihre Kalenderwerte aus der Langzeitstatistik. Energiesummen zeigen die erfassten Intervalle und können bei Lücken sowie im laufenden Intervall unvollständig sein. Es gibt keine Kosten-, Autarkie- oder Eigenverbrauchsberechnung aus unvollständigen Zählern.
+Der Verlauf summiert die Recorder-Energieänderungen in kWh. Manuell zugeordnete Energiezähler haben Vorrang. Automatisch erkannte Sofar-Tageszähler werden auch als importierte Statistiken ohne Live-Entität gefunden. Wenn ihre Statistik fehlt, sucht die Karte nach passenden Gesamtzählern und weiteren Sofar-Sensornamen. Fehlt auch dort die Statistik, kann die Karte Energie aus erfassten Leistungswerten schätzen und kennzeichnet die Kennzahl. Beim geschätzten Netzbezug zählt nur die Bezugsrichtung.
 
-Kalendergrenzen verwenden die Home-Assistant-Zeitzone einschließlich Sommerzeit. Jeder Balken zeigt die Energiesumme seines Intervalls. Die Legende zeigt die Summe der erfassten Intervalle im gewählten Zeitraum.
+Die Tagesansicht summiert die 5-Minuten-Statistiken zu Viertelstunden. Historische Tage mit ausschließlich stündlicher Zählerhistorie zeigen Stundenwerte. Wochen, Monate und frei gewählte Zeiträume zeigen Tagessummen, Jahre zeigen Monatssummen. Kalendergrenzen verwenden die Zeitzone von Home Assistant. Fehlende Werte bleiben leer. Die Legende summiert die erfassten Intervalle.
 
 ## Entwicklung
 

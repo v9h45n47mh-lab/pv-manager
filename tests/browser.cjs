@@ -2,6 +2,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
 const root=path.resolve(__dirname,'..'),out=path.join(root,'test-results');fs.mkdirSync(out,{recursive:true});
 const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+new URL(req.url,'http://localhost').pathname);if(!file.startsWith(root+path.sep)||!fs.existsSync(file)){res.writeHead(404).end();return;}res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':'text/html');res.end(fs.readFileSync(file));});
 (async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch({headless:true,args:['--no-sandbox'],...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{})});const page=await browser.newPage();page.setDefaultTimeout(8000);const errors=[];page.on('pageerror',e=>errors.push(e.message));try{
+await page.clock.setFixedTime(new Date('2026-11-18T05:40:00Z'));
 await page.goto(`http://127.0.0.1:${server.address().port}/tests/demo.html`);const card=page.locator('pv-manager-card');await card.locator('.fui-energy-node').first().waitFor();
 for(const theme of ['light','dark'])for(const width of [1100,390,320]){await page.setViewportSize({width,height:1100});await page.evaluate(t=>document.body.classList.toggle('dark',t==='dark'),theme);await card.getByRole('button',{name:'Energiefluss',exact:true}).click();assert.equal(await card.locator('.fui-energy-node').count(),4);assert.ok((await card.locator('main').innerText()).includes('64 %'));await page.screenshot({path:path.join(out,`flow-${width}-${theme}.png`),fullPage:true});await card.getByRole('button',{name:'Verlauf',exact:true}).click();await card.locator('#energy-chart').waitFor();await page.waitForFunction(()=>!document.querySelector('pv-manager-card')._busy);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`page fits ${width}`);assert.ok(await card.evaluate(el=>el.shadowRoot.querySelector('main').scrollWidth<=el.shadowRoot.querySelector('main').clientWidth),`card fits ${width}`);await page.screenshot({path:path.join(out,`history-${width}-${theme}.png`),fullPage:true});}
 await page.setViewportSize({width:850,height:1100});const svg=card.locator('#energy-chart .fui-chart-svg');await svg.focus();await svg.press('ArrowRight');assert.ok((await card.locator('#energy-chart .fui-chart-inspector').innerText()).includes('Erzeugung'));const box=await svg.boundingBox();await page.mouse.move(box.x+box.width*.6,box.y+box.height*.5);const inspector=await card.locator('#energy-chart .fui-chart-inspector').boundingBox();assert.ok(inspector.y+inspector.height<=box.y+1,'inspector stays above plot');
@@ -10,7 +11,7 @@ const production = legend.getByRole('button', {name: 'Erzeugung', exact: true});
 const consumption = legend.getByRole('button', {name: 'Verbrauch', exact: true});
 const importFilter = legend.getByRole('button', {name: 'Netzbezug', exact: true});
 const energyChart = card.locator('#energy-chart');
-await card.getByRole('button', {name: 'Vorheriger Zeitraum'}).click();
+await card.getByRole('button', {name: 'Vorheriger Tag'}).click();
 await page.waitForFunction(() => !document.querySelector('pv-manager-card')._busy);
 assert.equal(await card.locator('svg.fui-chart-svg').count(), 1);
 assert.equal(await legend.getByRole('button').count(), 3);
@@ -45,16 +46,38 @@ assert.ok(await energyChart.getByText('Wähle mindestens eine Datenreihe aus.').
 await consumption.click();
 assert.ok(await energyChart.locator('.fui-chart-bar.fui-energy-home').count());
 assert.equal(await page.evaluate(() => window.calls.filter(call => call.type.startsWith('recorder/')).length), energyCalls.length);
-for (const [period, recorderPeriod] of [['week', 'day'], ['month', 'day'], ['year', 'month'], ['day', '5minute']]) {
-  await card.locator('#period').selectOption(period);
+const periods = card.getByRole('group', {name: 'Auswertungszeitraum'});
+for (const [name, recorderPeriod] of [['Woche', 'day'], ['Monat', 'day'], ['Jahr', 'month'], ['Tag', '5minute']]) {
+  await periods.getByRole('button', {name, exact: true}).click();
   await page.waitForFunction(() => !document.querySelector('pv-manager-card')._busy);
   assert.equal(await page.evaluate(() => window.calls.at(-1).period), recorderPeriod);
   assert.equal(await production.getAttribute('aria-pressed'), 'false');
   assert.equal(await consumption.getAttribute('aria-pressed'), 'true');
 }
+await periods.getByRole('button', {name: 'Woche', exact: true}).click();
+await page.waitForFunction(() => !document.querySelector('pv-manager-card')._busy);
+assert.match(await card.locator('.week').innerText(), /Heute und die letzten 7 Tage/);
+assert.equal(await page.evaluate(() => window.calls.at(-1).start_time), '2026-11-10T23:00:00.000Z');
+const previousWeek = card.getByRole('button', {name: 'Vorherige Woche'});
+await previousWeek.press('ArrowLeft');
+await page.waitForFunction(() => !document.querySelector('pv-manager-card')._busy);
+assert.match(await card.locator('.week').innerText(), /KW 46/);
+assert.equal(await page.evaluate(() => window.calls.at(-1).start_time), '2026-11-08T23:00:00.000Z');
+assert.equal(await page.evaluate(() => window.calls.at(-1).end_time), '2026-11-15T22:59:59.999Z');
+await previousWeek.press('ArrowRight');
+await page.waitForFunction(() => !document.querySelector('pv-manager-card')._busy);
+assert.match(await card.locator('.week').innerText(), /Heute und die letzten 7 Tage/);
+await periods.getByRole('button', {name: 'Zeitraum', exact: true}).click();
+await card.getByLabel('Von', {exact: true}).fill('2026-07-01');
+await card.getByLabel('Bis', {exact: true}).fill('2026-07-31');
+await card.getByRole('button', {name: 'Anzeigen', exact: true}).click();
+await page.waitForFunction(() => !document.querySelector('pv-manager-card')._busy);
+assert.equal(await page.evaluate(() => window.calls.at(-1).end_time), '2026-07-31T21:59:59.999Z');
+await periods.getByRole('button', {name: 'Tag', exact: true}).click();
+await page.waitForFunction(() => !document.querySelector('pv-manager-card')._busy);
 await production.click();
 await importFilter.click();
-await card.getByRole('button',{name:'Vorheriger Zeitraum'}).click();await page.waitForFunction(()=>!document.querySelector('pv-manager-card')._busy);await card.getByRole('button',{name:'Heute',exact:true}).click();
+await card.getByRole('button',{name:'Vorheriger Tag'}).click();await page.waitForFunction(()=>!document.querySelector('pv-manager-card')._busy);await card.getByRole('button',{name:'Aktuell',exact:true}).click();
 await card.getByRole('button',{name:'Einstellungen',exact:true}).click();await card.getByLabel('Name der Karte',{exact:true}).fill('Dachanlage');const power=card.getByRole('combobox',{name:'PV-Leistung',exact:true});await power.fill('Netzleistung');await card.getByRole('option',{name:'Netzleistung sensor.inverter_grid_power'}).click();await card.getByLabel('Positiver Netzwert bedeutet').selectOption('export');await card.getByRole('button',{name:'Speichern',exact:true}).click();assert.equal(await page.evaluate(()=>window.saved.solar),'sensor.inverter_grid_power');assert.equal(await page.evaluate(()=>window.saved.title),'Dachanlage');assert.equal(await page.evaluate(()=>window.saved.grid_positive),'export');assert.ok(!await page.evaluate(()=>Object.hasOwn(window.saved,'type')));await card.getByRole('button',{name:'Energiefluss',exact:true}).click();await page.evaluate(()=>{window.mockHass.states['sensor.inverter_grid_power'].state='unavailable';document.querySelector('pv-manager-card').hass=window.mockHass;});assert.ok((await card.locator('main').innerText()).includes('Messwerte fehlen'));
 await page.evaluate(()=>window.failRecorder=true);await card.getByRole('button',{name:'Verlauf',exact:true}).click();await page.waitForFunction(()=>!document.querySelector('pv-manager-card')._busy);assert.ok((await card.locator('main').innerText()).includes('Recorder nicht erreichbar'));assert.ok((await card.locator('#energy-chart').innerText()).includes('Erzeugung'));
 await page.evaluate(()=>{window.userAdmin=false;const c=document.querySelector('pv-manager-card');c._ready=false;c._init();});await card.getByRole('button',{name:'Einstellungen',exact:true}).click();await page.waitForFunction(()=>!document.querySelector('pv-manager-card')._initializing);assert.ok(await card.getByRole('button',{name:'Speichern',exact:true}).isDisabled());

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.7 – 2026-11-18
+
+- Zeitraumwahl wie in der Wetteranalyse mit Schaltflächen, Kalenderpfeilen und frei wählbaren Daten. Der aktuelle Tag zeigt die letzten 24 Stunden, die aktuelle Woche heute und die vorherigen sieben Tage.
+- Der Verlauf erkennt Sofar-Tageszähler auch in importierten Recorder-Statistiken. Für ältere Tage mit stündlicher Zählerhistorie zeigt er Stundenwerte.
+
 ## 1.0.6 – 2026-11-17
 
 - PV-Verlauf erkennt Sofar-Energiezähler passend zu den Leistungssensoren. Bei fehlender Zählerstatistik schätzt die Karte die Energie aus vorhandenen Recorder-Leistungswerten.
