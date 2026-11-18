@@ -17,7 +17,7 @@ card = (frontend / "pv-manager-card.js").read_text()
 assert f"const VERSION = '{version}'" in card
 assert f"from './data.js?v={version}'" in card, "Version the data module with the card to prevent stale imports"
 lock = json.loads((frontend / "family-ui.lock.json").read_text())
-assert lock["version"] == "1.9.4"
+assert lock["version"] == "1.9.5"
 for file, expected in lock["files"].items():
     assert hashlib.sha256((frontend / "family-ui" / lock["version"] / file).read_bytes()).hexdigest() == expected
 assert hashlib.sha256((frontend / "family-ui" / lock["version"] / "LICENSE").read_bytes()).hexdigest() == lock["licenseSha256"]

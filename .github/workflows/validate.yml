@@ -55,4 +55,4 @@ jobs:
           RELEASE_COMMIT: ${{ github.sha }}
         run: |
           version="$(python3 -c "import json; print(json.load(open('package.json'))['version'])")"
-          gh release create "v${version}" dist/*.zip --target "$RELEASE_COMMIT" --title "PV Manager ${version}" --notes "Versioniert das Datenmodul zusammen mit der Karte und behebt den Ladefehler durch alte Datenmoduldateien im Browsercache."
+          gh release create "v${version}" dist/*.zip --target "$RELEASE_COMMIT" --title "PV Manager ${version}" --notes "Im Energiefluss steigt die Zahl der wandernden Punkte mit der Leistung pro Verbindung. Das Update verwendet HA UI Kit 1.9.5."

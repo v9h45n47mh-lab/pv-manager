@@ -1,7 +1,7 @@
 {
   "domain": "pv_manager",
   "name": "PV Manager",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "documentation": "https://github.com/v9h45n47mh-lab/pv-manager",
   "issue_tracker": "https://github.com/v9h45n47mh-lab/pv-manager/issues",
   "codeowners": [

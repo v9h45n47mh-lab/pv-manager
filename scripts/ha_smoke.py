@@ -38,7 +38,7 @@ async def main(yaml_mode):
             assert CARD_URL not in extra_urls.urls
             assert (LOADER_URL in extra_urls.urls) is yaml_mode
             async with ClientSession() as session:
-                for name in [CARD_URL, LOADER_URL, f'/pv-manager/data.js?v={VERSION}', '/pv-manager/family-ui/1.9.4/family-ui.js']:
+                for name in [CARD_URL, LOADER_URL, f'/pv-manager/data.js?v={VERSION}', '/pv-manager/family-ui/1.9.5/family-ui.js']:
                     async with session.get('http://127.0.0.1:8123' + name) as response:
                         assert response.status == 200, (name, response.status)
                         assert 'javascript' in response.headers['Content-Type'], response.headers

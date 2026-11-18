@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.10 – 2026-11-18
+
+- Leistungsabhängige Punktanzahl im Energiefluss. Kleine Flüsse zeigen wenige Punkte, große Flüsse bis zu acht.
+- HA UI Kit 1.9.5 lokal gebündelt.
+
 ## 1.0.9 – 2026-11-18
 
 - Das Kartenmodul und das Datenmodul verwenden dieselbe Versionskennung in der URL. Eine alte Datenmoduldatei im Browsercache kann die Registrierung des neuen Kartenelements nicht mehr blockieren.

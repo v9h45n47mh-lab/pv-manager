@@ -4,6 +4,30 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+new UR
 (async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch({headless:true,args:['--no-sandbox'],...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{})});const page=await browser.newPage();page.setDefaultTimeout(8000);const errors=[];page.on('pageerror',e=>errors.push(e.message));try{
 await page.clock.setFixedTime(new Date('2026-11-18T05:40:00Z'));
 await page.goto(`http://127.0.0.1:${server.address().port}/tests/demo.html`);const card=page.locator('pv-manager-card');await card.locator('.fui-energy-node').first().waitFor();
+await page.waitForFunction(() => document.querySelector('pv-manager-card')._ready);
+const flowDots = () => card.locator('.fui-flow-line.animated').evaluateAll(paths => paths.map(path => ({
+  count: Math.round(Number(path.getAttribute('pathLength')) / Number(path.style.getPropertyValue('--fui-flow-dot-step'))),
+  animation: getComputedStyle(path).animationName,
+})));
+const liveFlows = await flowDots();
+assert.deepEqual(liveFlows.map(flow => flow.count), [4, 3, 3]);
+assert.ok(liveFlows.every(flow => flow.animation === 'fui-energy-move'));
+await page.emulateMedia({reducedMotion: 'reduce'});
+assert.ok((await flowDots()).every(flow => flow.animation === 'none'));
+await page.emulateMedia({reducedMotion: 'no-preference'});
+const setFlow = power => page.evaluate(power => {
+  const hass = window.mockHass;
+  for (const [suffix, value] of Object.entries({
+    power: power ?? 5200, load_power: power ?? 2700, grid_power: power == null ? -1000 : 0,
+    battery_power: power == null ? -1500 : 0,
+  })) hass.states['sensor.inverter_' + suffix].state = String(value);
+  document.querySelector('pv-manager-card').hass = hass;
+}, power);
+for (const [power, counts] of [[100, [1]], [12000, [8]], [0, []]]) {
+  await setFlow(power);
+  assert.deepEqual((await flowDots()).map(flow => flow.count), counts);
+}
+await setFlow(null);
 for(const theme of ['light','dark'])for(const width of [1100,390,320]){await page.setViewportSize({width,height:1100});await page.evaluate(t=>document.body.classList.toggle('dark',t==='dark'),theme);await card.getByRole('button',{name:'Energiefluss',exact:true}).click();assert.equal(await card.locator('.fui-energy-node').count(),4);assert.ok((await card.locator('main').innerText()).includes('64 %'));await page.screenshot({path:path.join(out,`flow-${width}-${theme}.png`),fullPage:true});await card.getByRole('button',{name:'Verlauf',exact:true}).click();await card.locator('#energy-chart').waitFor();await page.waitForFunction(()=>!document.querySelector('pv-manager-card')._busy);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`page fits ${width}`);assert.ok(await card.evaluate(el=>el.shadowRoot.querySelector('main').scrollWidth<=el.shadowRoot.querySelector('main').clientWidth),`card fits ${width}`);await page.screenshot({path:path.join(out,`history-${width}-${theme}.png`),fullPage:true});}
 await page.setViewportSize({width:850,height:1100});const svg=card.locator('#energy-chart .fui-chart-svg');await svg.focus();await svg.press('ArrowRight');assert.ok((await card.locator('#energy-chart .fui-chart-inspector').innerText()).includes('Erzeugung'));const box=await svg.boundingBox();await page.mouse.move(box.x+box.width*.6,box.y+box.height*.5);const inspector=await card.locator('#energy-chart .fui-chart-inspector').boundingBox();assert.ok(inspector.y+inspector.height<=box.y+1,'inspector stays above plot');
 const legend = card.getByRole('group', {name: 'Kennzahlen und Summen im Zeitraum'});

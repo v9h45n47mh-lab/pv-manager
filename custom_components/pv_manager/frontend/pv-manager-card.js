@@ -1,7 +1,7 @@
-import {UI_CSS,UI_VERSION,navigation,section,row,field,selectField,combobox,toggle,button,filterButton,notice,versionInfo,bindUI,energyFlow,seriesChart,bindSeriesCharts,dateNavigation,escapeHtml} from './family-ui/1.9.4/family-ui.js';
-import {DEFAULTS,FIELDS,liveValues,allocateFlows,dayKey,historyRange,validCustomRange,shiftAnchor,HISTORY_INTERVALS,HOUR,QUARTER_HOUR,calendarBuckets,historyPoints,energyFromPower} from './data.js?v=1.0.9';
+import {UI_CSS,UI_VERSION,navigation,section,row,field,selectField,combobox,toggle,button,filterButton,notice,versionInfo,bindUI,energyFlow,seriesChart,bindSeriesCharts,dateNavigation,escapeHtml} from './family-ui/1.9.5/family-ui.js';
+import {DEFAULTS,FIELDS,liveValues,allocateFlows,dayKey,historyRange,validCustomRange,shiftAnchor,HISTORY_INTERVALS,HOUR,QUARTER_HOUR,calendarBuckets,historyPoints,energyFromPower} from './data.js?v=1.0.10';
 const uniqueId=()=>globalThis.crypto?.randomUUID?.()||'pv_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);
-const VERSION = '1.0.9';
+const VERSION = '1.0.10';
 const PERIODS = {
   day: {label: 'Tag', previous: 'Vorheriger Tag', next: 'Nächster Tag'},
   week: {label: 'Woche', previous: 'Vorherige Woche', next: 'Nächste Woche'},

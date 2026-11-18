@@ -1,10 +1,10 @@
 # PV Manager
 
-Home-Assistant-Karte für PV, Netz, Haus und Batteriespeicher. Die komplette Oberfläche verwendet das lokal gebündelte **HA UI Kit 1.9.4**. Keine CDN-Abhängigkeit, keine Cloud und keine zusätzliche Diagrammkarte nötig.
+Home-Assistant-Karte für PV, Netz, Haus und Batteriespeicher. Die komplette Oberfläche verwendet das lokal gebündelte **HA UI Kit 1.9.5**. Keine CDN-Abhängigkeit, keine Cloud und keine zusätzliche Diagrammkarte nötig.
 
 ## Funktionen
 
-- Animierter Energiefluss wie in der Referenz: PV oben, Netz links, Haus rechts, Batterie unten; Ladezustand und eindeutige Bezugs-/Laderichtung.
+- Die wandernden Punkte im Energiefluss zeigen die Richtung an. Kleine Leistungen werden mit wenigen Punkten dargestellt, bei höherer Leistung steigt die Anzahl auf bis zu acht pro Verbindung.
 - Zeitraumwahl wie in der Wetteranalyse mit Schaltflächen, Pfeilen und freier Datumsauswahl. Die Jahresansicht zeigt Monatssummen.
 - Ein Energie-Balkendiagramm. Tag mit 15-Minuten-Summen, Woche und Monat mit Tagessummen, Jahr mit Monatssummen.
 - Erzeugung, Verbrauch und Netzbezug in kWh. Die farbigen Legendeneinträge zeigen die Zeitraum-Summen und schalten ihre Balken ein oder aus.
@@ -71,7 +71,7 @@ npm run test:browser
 npm run package
 ```
 
-`tests/demo.html` ist eine lokale Vorschau mit klaren Beispieldaten. Die produktive Karte enthält keine Demowerte. Die festen UI-Dateien samt Lizenz und Prüfsummen liegen unter `frontend/family-ui/1.9.4`. Änderungen an gemeinsamem Aussehen erfolgen im [HA UI Kit](https://github.com/v9h45n47mh-lab/ha-ui-kit).
+`tests/demo.html` ist eine lokale Vorschau mit klaren Beispieldaten. Die produktive Karte enthält keine Demowerte. Die festen UI-Dateien samt Lizenz und Prüfsummen liegen unter `frontend/family-ui/1.9.5`. Änderungen an gemeinsamem Aussehen erfolgen im [HA UI Kit](https://github.com/v9h45n47mh-lab/ha-ui-kit).
 
 ## PV-Manager-Icon
 
