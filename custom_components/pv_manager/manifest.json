@@ -1,7 +1,7 @@
 {
   "domain": "pv_manager",
   "name": "PV Manager",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "documentation": "https://github.com/v9h45n47mh-lab/pv-manager",
   "issue_tracker": "https://github.com/v9h45n47mh-lab/pv-manager/issues",
   "codeowners": [
@@ -11,6 +11,7 @@
   "dependencies": [
     "frontend",
     "http",
+    "lovelace",
     "recorder",
     "websocket_api"
   ],

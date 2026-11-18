@@ -1,7 +1,7 @@
 import {UI_CSS,UI_VERSION,navigation,section,row,field,selectField,combobox,toggle,button,filterButton,notice,versionInfo,bindUI,energyFlow,seriesChart,bindSeriesCharts,dateNavigation,escapeHtml} from './family-ui/1.9.4/family-ui.js';
 import {DEFAULTS,FIELDS,liveValues,allocateFlows,dayKey,historyRange,validCustomRange,shiftAnchor,HISTORY_INTERVALS,HOUR,QUARTER_HOUR,calendarBuckets,historyPoints,energyFromPower} from './data.js';
 const uniqueId=()=>globalThis.crypto?.randomUUID?.()||'pv_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);
-const VERSION = '1.0.7';
+const VERSION = '1.0.8';
 const PERIODS = {
   day: {label: 'Tag', previous: 'Vorheriger Tag', next: 'Nächster Tag'},
   week: {label: 'Woche', previous: 'Vorherige Woche', next: 'Nächste Woche'},
@@ -351,4 +351,7 @@ class PVManagerEditor extends HTMLElement {
 }
 if(!customElements.get('pv-manager-card'))customElements.define('pv-manager-card',PVManagerCard);
 if(!customElements.get('pv-manager-card-editor'))customElements.define('pv-manager-card-editor',PVManagerEditor);
-window.customCards=window.customCards||[];window.customCards.push({type:'pv-manager-card',name:'PV Manager',description:'PV-Energiefluss und summierter Energieverlauf',preview:true});
+window.customCards ||= [];
+if (!window.customCards.some(card => card.type === 'pv-manager-card')) {
+  window.customCards.push({type:'pv-manager-card',name:'PV Manager',description:'PV-Energiefluss und summierter Energieverlauf',preview:true});
+}

@@ -20,7 +20,9 @@ Home-Assistant-Karte für PV, Netz, Haus und Batteriespeicher. Die komplette Obe
 4. Dashboard bearbeiten → Karte hinzufügen → **PV Manager**. Falls die Karte noch fehlt, Browser neu laden.
 5. Zahnrad der Karte öffnen, Sensoren und Vorzeichen prüfen und speichern.
 
-Die Kartenressource wird automatisch registriert. Keine manuelle Ressourcenregistrierung erforderlich.
+PV Manager registriert die Karte als Dashboard-Ressource und aktualisiert die Ressourcen-URL bei einem Versionswechsel. Wenn du die Dashboard-Ressourcen über YAML verwaltest, lädt PV Manager die Karte automatisch nach dem Start des Home-Assistant-Frontends. Eine in YAML eingetragene Kartenressource hat Vorrang.
+
+Nach einem Update Home Assistant neu starten und das Dashboard im Browser neu laden.
 
 ## Manuelle Installation
 

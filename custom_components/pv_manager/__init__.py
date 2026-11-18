@@ -10,13 +10,17 @@ except ImportError:
     import voluptuous as vol
 
 from homeassistant.auth.permissions.const import POLICY_READ
-from homeassistant.components import frontend, websocket_api
+from homeassistant.components import frontend, lovelace, websocket_api
 from homeassistant.components.http import StaticPathConfig
+from homeassistant.components.lovelace.resources import ResourceStorageCollection
 from homeassistant.core import callback
 from homeassistant.helpers.storage import Store
 
 DOMAIN = "pv_manager"
-VERSION = "1.0.7"
+VERSION = "1.0.8"
+CARD_PATH = "/pv-manager/pv-manager-card.js"
+CARD_URL = f"{CARD_PATH}?v={VERSION}"
+LOADER_URL = f"/pv-manager/pv-manager-loader.js?v={VERSION}"
 ENTITY_KEYS = ("solar", "grid", "home", "battery", "soc", "solar_energy", "import_energy",
                "export_energy", "home_energy", "charge_energy", "discharge_energy")
 CARD_ID = vol.All(str, vol.Length(min=1, max=100), vol.Match(r"^[A-Za-z0-9_-]+$"))
@@ -37,18 +41,51 @@ async def async_setup(hass, config):
     await hass.http.async_register_static_paths([
         StaticPathConfig("/pv-manager", str(Path(__file__).parent / "frontend"), False)
     ])
-    frontend.add_extra_js_url(hass, f"/pv-manager/pv-manager-card.js?v={VERSION}")
     websocket_api.async_register_command(hass, ws_config)
     websocket_api.async_register_command(hass, ws_save)
     return True
 
 
+def _dashboard_resources(hass):
+    """Get the resource collection on current and older Home Assistant releases."""
+    data = hass.data[getattr(lovelace, "LOVELACE_DATA", lovelace.DOMAIN)]
+    return data["resources"] if isinstance(data, dict) else data.resources
+
+
 async def async_setup_entry(hass, entry):
+    """Load the card through the dashboard's resource collection."""
+    resources = _dashboard_resources(hass)
+    await resources.async_get_info()
+    resource = next(
+        (item for item in resources.async_items() if item["url"].split("?", 1)[0] == CARD_PATH),
+        None,
+    )
+    if isinstance(resources, ResourceStorageCollection):
+        data = {"url": CARD_URL, "res_type": "module"}
+        if resource is None:
+            await resources.async_create_item(data)
+        elif resource["url"] != CARD_URL or resource["type"] != "module":
+            await resources.async_update_item(resource["id"], data)
+    elif resource is None or resource["type"] != "module":
+        # YAML resources are managed by the user's configuration.
+        frontend.add_extra_js_url(hass, LOADER_URL)
     return True
 
 
 async def async_unload_entry(hass, entry):
     return True
+
+
+async def async_remove_entry(hass, entry):
+    """Clean up the resource installed by PV Manager on integration removal."""
+    resources = _dashboard_resources(hass)
+    if isinstance(resources, ResourceStorageCollection):
+        await resources.async_get_info()
+        for item in resources.async_items():
+            if item["url"] == CARD_URL:
+                await resources.async_delete_item(item["id"])
+    elif LOADER_URL in hass.data[frontend.DATA_EXTRA_MODULE_URL].urls:
+        frontend.remove_extra_js_url(hass, LOADER_URL)
 
 
 @websocket_api.websocket_command({vol.Required("type"): "pv_manager/config",

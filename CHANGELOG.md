@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.8 – 2026-11-18
+
+- Die Karte wird als Dashboard-Ressource registriert. So ist das Kartenelement beim Laden des Dashboards verfügbar.
+- Bei YAML-Ressourcen startet die automatische Kartenregistrierung erst mit dem Home-Assistant-Frontend.
+
 ## 1.0.7 – 2026-11-18
 
 - Zeitraumwahl wie in der Wetteranalyse mit Schaltflächen, Kalenderpfeilen und frei wählbaren Daten. Der aktuelle Tag zeigt die letzten 24 Stunden, die aktuelle Woche heute und die vorherigen sieben Tage.

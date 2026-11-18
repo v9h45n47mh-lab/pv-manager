@@ -10,6 +10,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Test official Home Assistant
         run: docker run --rm --entrypoint python -v "$PWD:/work" -w /work ghcr.io/home-assistant/home-assistant:2026.10.0 scripts/ha_smoke.py
+      - name: Test YAML resource mode
+        run: docker run --rm --entrypoint python -v "$PWD:/work" -w /work ghcr.io/home-assistant/home-assistant:2026.10.0 scripts/ha_smoke.py --yaml
   validate:
     runs-on: ubuntu-latest
     steps:
@@ -53,4 +55,4 @@ jobs:
           RELEASE_COMMIT: ${{ github.sha }}
         run: |
           version="$(python3 -c "import json; print(json.load(open('package.json'))['version'])")"
-          gh release create "v${version}" dist/*.zip --target "$RELEASE_COMMIT" --title "PV Manager ${version}" --notes "Zeitraumwahl wie in der Wetteranalyse. Importierte Sofar-Tageszähler werden automatisch als Quelle für Erzeugung, Verbrauch und Netzbezug erkannt."
+          gh release create "v${version}" dist/*.zip --target "$RELEASE_COMMIT" --title "PV Manager ${version}" --notes "Korrigiert den Ladefehler „Custom element doesn't exist: pv-manager-card“. PV Manager registriert die Karte als Dashboard-Ressource und unterstützt weiterhin Ressourcen im YAML-Modus."
