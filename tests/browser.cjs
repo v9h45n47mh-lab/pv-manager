@@ -42,7 +42,7 @@ assert.ok(!firstFrame.equals(await flowSvg.screenshot()), 'animation changes the
 const setFlow = power => page.evaluate(power => {
   const hass = window.mockHass;
   for (const [suffix, value] of Object.entries({
-    power: power ?? 5200, load_power: power ?? 2700, grid_power: power == null ? -1000 : 0,
+    pv_power: power ?? 5200, load_power: power ?? 2700, grid_power: power == null ? -1000 : 0,
     battery_power: power == null ? -1500 : 0,
   })) hass.states['sensor.inverter_' + suffix].state = String(value);
   document.querySelector('pv-manager-card').hass = hass;

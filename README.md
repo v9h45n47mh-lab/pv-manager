@@ -40,7 +40,7 @@ Für eine zweite Karte eine eigene `card_id` verwenden. Diese darf Buchstaben, Z
 
 | Verwendung | Sofar-Vorschlag | Erwartete Einheit |
 | --- | --- | --- |
-| PV | `sensor.inverter_power` | W / kW / MW |
+| PV | `sensor.inverter_pv_power` | W / kW / MW |
 | Netz | `sensor.inverter_grid_power` | W / kW / MW |
 | Haus | `sensor.inverter_load_power` | W / kW / MW |
 | Batterie | `sensor.inverter_battery_power` | W / kW / MW |
@@ -48,6 +48,8 @@ Für eine zweite Karte eine eigene `card_id` verwenden. Diese darf Buchstaben, Z
 | Erzeugung | `sensor.inverter_today_production` | Wh / kWh / MWh |
 | Verbrauch | `sensor.inverter_today_load_consumption` | Wh / kWh / MWh |
 | Netzbezug | `sensor.inverter_today_energy_import` | Wh / kWh / MWh |
+
+Für Sofar misst `sensor.inverter_pv_power` die Leistung der Module. Der AC-Ausgang `sensor.inverter_power` kann zusätzlich Batterieentladung enthalten. Karten mit dem alten Standardpaar aus AC-Ausgang und `sensor.inverter_load_power` verwenden automatisch den PV-Eingang, sobald diese Entität verfügbar ist.
 
 Standard: positiver Netzwert = **Bezug**, positiver Batteriewert = **Entladen**. Beide Regeln sind umkehrbar. Bitte anhand realer Einspeisung/Ladung prüfen. Energieflussverbindungen sind rechnerische Zuordnungen aus den Gesamtleistungen mit Priorität PV → Haus → Batterie → Netz. Die Bilanz kann durch Messzeitpunkte, Wechselrichterverluste oder falsche Zuordnung abweichen; eine größere Abweichung wird angezeigt. Einzelne Herkunftsflüsse werden nicht separat gemessen.
 

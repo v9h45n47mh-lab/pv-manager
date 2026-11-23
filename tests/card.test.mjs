@@ -18,7 +18,7 @@ test('unconfigured history uses matching Sofar counters and estimates missing me
   const calls = [];
   card._hass = {
     states: {
-      'sensor.inverter_power': power,
+      'sensor.inverter_pv_power': power,
       'sensor.inverter_load_power': power,
       'sensor.inverter_grid_power': power,
       'sensor.inverter_total_pv_generation': energy,
@@ -45,6 +45,33 @@ test('unconfigured history uses matching Sofar counters and estimates missing me
   assert.equal(card._data.import_energy.points[0].y, 0.1);
   assert.match(card.shadowRoot.innerHTML, /Aus Leistungsstatistiken geschätzt: Verbrauch, Netzbezug/);
   assert.doesNotMatch(card.shadowRoot.innerHTML, /Keine Recorder-Daten für/);
+});
+
+test('legacy Sofar cards use PV input while showing house load and signed battery and grid readings', () => {
+  const Card = registry.get('pv-manager-card');
+  const card = new Card();
+  const state = (value, unit = 'W') => ({state: String(value), attributes: {unit_of_measurement: unit}});
+  card.setConfig({card_id: 'sofar', battery_positive: 'charge', grid_positive: 'export'});
+  card._settings = {solar: 'sensor.inverter_power'};
+  card._hass = {states: {
+    'sensor.inverter_power': state(6100),
+    'sensor.inverter_pv_power': state(2.8, 'kW'),
+    'sensor.inverter_load_power': state(6200),
+    'sensor.inverter_battery_power': state(-3400),
+    'sensor.inverter_grid_power': state(-120),
+    'sensor.inverter_battery': state(45, '%'),
+    'sensor.custom_pv': state(5000),
+  }};
+  assert.equal(card.settings.solar, 'sensor.inverter_pv_power');
+  const html = card._live();
+  assert.match(html, /aria-label="PV, 2,8 kW"/);
+  assert.match(html, /aria-label="Haus, 6,2 kW"/);
+  assert.match(html, /aria-label="Batterie, 3,4 kW, Entladen/);
+  assert.match(html, /aria-label="Netz, 120 W, Bezug/);
+  card._hass.states['sensor.inverter_pv_power'].state = 'unavailable';
+  assert.match(card._live(), /aria-label="PV, —"/);
+  card._settings.solar = 'sensor.custom_pv';
+  assert.match(card._live(), /aria-label="PV, 5 kW"/);
 });
 
 test('imported Sofar energy statistics take precedence without a live entity', async () => {

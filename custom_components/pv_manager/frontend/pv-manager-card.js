@@ -1,7 +1,7 @@
 import {UI_CSS,UI_VERSION,navigation,section,row,field,selectField,combobox,toggle,button,filterButton,notice,versionInfo,bindUI,energyFlow,seriesChart,bindSeriesCharts,dateNavigation,escapeHtml} from './family-ui/1.9.6/family-ui.js';
-import {DEFAULTS,FIELDS,liveValues,allocateFlows,dayKey,historyRange,validCustomRange,shiftAnchor,HISTORY_INTERVALS,HOUR,QUARTER_HOUR,calendarBuckets,historyPoints,energyFromPower} from './data.js?v=1.0.11';
+import {DEFAULTS,FIELDS,liveValues,allocateFlows,dayKey,historyRange,validCustomRange,shiftAnchor,HISTORY_INTERVALS,HOUR,QUARTER_HOUR,calendarBuckets,historyPoints,energyFromPower} from './data.js?v=1.0.12';
 const uniqueId=()=>globalThis.crypto?.randomUUID?.()||'pv_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);
-const VERSION = '1.0.11';
+const VERSION = '1.0.12';
 const PERIODS = {
   day: {label: 'Tag', previous: 'Vorheriger Tag', next: 'Nächster Tag'},
   week: {label: 'Woche', previous: 'Vorherige Woche', next: 'Nächste Woche'},
@@ -69,7 +69,15 @@ class PVManagerCard extends HTMLElement {
     }
     this.config={...DEFAULTS,...config,card_id:cardId};this._settings={};this._ready=false;this._sequence++;this._data={};if(this._hass)this._init();this.render();
   }
-  get settings(){return {...this.config,...this._settings};}
+  get settings() {
+    const settings = {...this.config, ...this._settings};
+    // Earlier Sofar defaults used inverter AC output, which includes battery discharge.
+    if (settings.solar === 'sensor.inverter_power' && settings.home === DEFAULTS.home &&
+        powerUnits.has(this._hass?.states?.[DEFAULTS.solar]?.attributes?.unit_of_measurement)) {
+      settings.solar = DEFAULTS.solar;
+    }
+    return settings;
+  }
   get timezone(){return this._hass?.config?.time_zone||'Europe/Berlin';}
   get today(){return dayKey(new Date(),this.timezone);}
   set hass(hass){this._hass=hass;if(!this.config)return;if(!this._ready){this._init();return;}if(this.page==='live')this._updateLive();}

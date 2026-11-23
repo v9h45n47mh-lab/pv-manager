@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.12 – 2026-11-23
+
+- Die Sofar-Vorgabe für die PV-Leistung verwendet den Eingangssensor `sensor.inverter_pv_power`. Bei älteren Karten mit dem bisherigen Sofar-Sensorpaar wird die PV-Quelle beim Laden auf den Eingangssensor umgestellt, sobald Home Assistant diese Entität kennt.
+
 ## 1.0.11 – 2026-11-18
 
 - Die Punkte im Energiefluss bewegen sich wieder und laufen bei Live-Aktualisierungen weiter.

@@ -17,7 +17,7 @@ from homeassistant.core import callback
 from homeassistant.helpers.storage import Store
 
 DOMAIN = "pv_manager"
-VERSION = "1.0.11"
+VERSION = "1.0.12"
 CARD_PATH = "/pv-manager/pv-manager-card.js"
 CARD_URL = f"{CARD_PATH}?v={VERSION}"
 LOADER_URL = f"/pv-manager/pv-manager-loader.js?v={VERSION}"

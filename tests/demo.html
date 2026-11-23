@@ -4,7 +4,8 @@ import {dayKey, midnight, shiftAnchor} from '../custom_components/pv_manager/fro
 const card=document.querySelector('pv-manager-card');
 const attrs=(name,unit,device_class,state_class='measurement')=>({friendly_name:name,unit_of_measurement:unit,device_class,state_class});
 const states={
-'sensor.inverter_power':{state:'5200',attributes:attrs('PV Erzeugung','W','power')},
+'sensor.inverter_power':{state:'3700',attributes:attrs('Wechselrichter AC-Ausgang','W','power')},
+'sensor.inverter_pv_power':{state:'5200',attributes:attrs('PV Erzeugung','W','power')},
 'sensor.inverter_grid_power':{state:'-1000',attributes:attrs('Netzleistung','W','power')},
 'sensor.inverter_load_power':{state:'2700',attributes:attrs('Hausverbrauch','W','power')},
 'sensor.inverter_battery_power':{state:'-1500',attributes:attrs('Batterieleistung','W','power')},
@@ -17,7 +18,7 @@ const states={
 window.calls=[];window.saved=null;window.failRecorder=false;window.userAdmin=true;
 window.mockHass={states,config:{time_zone:'Europe/Berlin'},callWS:async msg=>{
 window.calls.push(msg);
-if(msg.type==='pv_manager/config')return {admin:window.userAdmin,settings:window.saved||{solar_energy:'sensor.pv_total',home_energy:'sensor.home_total',import_energy:'sensor.import_total',export_energy:'sensor.export_total'}};
+if(msg.type==='pv_manager/config')return {admin:window.userAdmin,settings:window.saved||{solar:'sensor.inverter_power',solar_energy:'sensor.pv_total',home_energy:'sensor.home_total',import_energy:'sensor.import_total',export_energy:'sensor.export_total'}};
 if(msg.type==='pv_manager/save'){window.saved=msg.settings;return {saved:true};}
 if(msg.type==='recorder/statistics_during_period'){
 if(window.failRecorder)throw Error('Recorder nicht erreichbar');
